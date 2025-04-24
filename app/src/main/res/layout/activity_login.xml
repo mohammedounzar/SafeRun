@@ -8,29 +8,19 @@
     android:background="@drawable/background_gradient"
     tools:context=".ui.auth.LoginActivity">
 
-    <ImageView
-        android:id="@+id/app_logo"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:layout_marginTop="48dp"
-        android:contentDescription="@string/app_logo"
-        android:src="@drawable/ic_saferun_logo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <TextView
         android:id="@+id/app_name_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:fontFamily="@font/montserrat_bold"
         android:text="@string/app_name"
         android:textColor="@color/white"
         android:textSize="28sp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/app_logo" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.2" />
 
     <TextView
         android:id="@+id/tagline_text"
