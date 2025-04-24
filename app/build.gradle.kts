@@ -1,15 +1,16 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
     namespace = "com.example.saferun"
-    compileSdk = 34
+    compileSdk = 35  // requires AGP 8.1.0+
 
     defaultConfig {
         applicationId = "com.example.saferun"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -25,17 +26,34 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         viewBinding = true
+    }
+
+    packagingOptions {
+        resources {
+            excludes += listOf(
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE.txt",
+                "META-INF/LICENSE",
+                "META-INF/NOTICE",
+                "META-INF/DEPENDENCIES"
+            )
+        }
     }
 }
 
 dependencies {
+    // Import the Firebase BoM, so all Firebase libs use matching versions:
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
 
+    // AndroidX core UI
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
@@ -43,7 +61,13 @@ dependencies {
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.legacy.support.v4)
-    implementation(libs.recyclerview)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    // Firebase — versions are managed by the BoM
+    implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

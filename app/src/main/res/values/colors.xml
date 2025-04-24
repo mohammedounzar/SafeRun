@@ -1,10 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Primary brand colors -->
+    <color name="colorPrimary">#FF5722</color> <!-- Energetic orange/red -->
+    <color name="colorPrimaryDark">#E64A19</color>
+    <color name="colorPrimaryLight">#FFAB91</color>
+    <color name="colorAccent">#03A9F4</color> <!-- Complementary blue -->
+
+    <!-- Neutral colors -->
+    <color name="colorBackground">#FAFAFA</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorPrimaryText">#212121</color>
+    <color name="colorSecondaryText">#757575</color>
+    <color name="colorDivider">#BDBDBD</color>
+
+    <color name="primary_color">#0277BD</color>
+    <color name="primary_dark">#01579B</color>
+    <color name="accent_color">#FF5722</color>
+    <color name="accent_light">#FFB74D</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="white_70">#B3FFFFFF</color>
+
+    <!-- Semantic colors -->
+    <color name="colorSuccess">#4CAF50</color>
+    <color name="colorWarning">#FFC107</color>
+    <color name="colorError">#F44336</color>
+    <color name="colorInfo">#2196F3</color>
+
+    <!-- Common color names for backward compatibility -->
+    <color name="purple_200">#FFAB91</color>
+    <color name="purple_500">#FF5722</color>
+    <color name="purple_700">#E64A19</color>
+    <color name="teal_200">#03A9F4</color>
+    <color name="teal_700">#0288D1</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
