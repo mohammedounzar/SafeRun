@@ -1,6 +1,7 @@
 package com.example.saferun.ui.auth;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -21,6 +22,7 @@ import com.example.saferun.data.model.User;
 import com.example.saferun.data.repository.UserRepository;
 import com.example.saferun.ui.athlete.AthleteDashboardActivity;
 import com.example.saferun.ui.coach.CoachDashboardActivity;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
@@ -48,30 +50,31 @@ public class LoginActivity extends AppCompatActivity {
         // Initialize repository
         userRepository = UserRepository.getInstance();
 
-        // Check if user is already logged in
-        if (userRepository.isUserLoggedIn()) {
-            navigateToAppropriateScreen();
-            return;
-        }
-
-        // Initialize views
+        // Initialize views first
         initViews();
 
         // Set up click listeners
         setupClickListeners();
+
+        // Check if user is already logged in AFTER views are initialized
+        if (userRepository.isUserLoggedIn()) {
+            navigateToAppropriateScreen();
+        }
     }
 
     private void initViews() {
-        emailLayout = findViewById(R.id.email_text_input_layout);
-        passwordLayout = findViewById(R.id.password_text_input_layout);
+        // Note: we're no longer using TextInputLayout
 
+        // EditTexts (now regular EditText instead of TextInputEditText)
         emailEditText = findViewById(R.id.email_edit_text);
         passwordEditText = findViewById(R.id.password_edit_text);
 
+        // Button and TextViews
         loginButton = findViewById(R.id.login_button);
         registerLinkTextView = findViewById(R.id.register_link_text_view);
         forgotPasswordTextView = findViewById(R.id.forgot_password_text_view);
 
+        // Progress bar
         progressBar = findViewById(R.id.progress_bar);
     }
 
@@ -87,9 +90,9 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void attemptLogin() {
-        // Reset errors
-        emailLayout.setError(null);
-        passwordLayout.setError(null);
+        // Reset any previous errors
+        emailEditText.setError(null);
+        passwordEditText.setError(null);
 
         // Get values
         String email = emailEditText.getText().toString().trim();
@@ -101,22 +104,22 @@ public class LoginActivity extends AppCompatActivity {
 
         // Check password
         if (TextUtils.isEmpty(password)) {
-            passwordLayout.setError(getString(R.string.error_field_required));
+            passwordEditText.setError(getString(R.string.error_field_required));
             focusView = passwordEditText;
             cancel = true;
         } else if (password.length() < 6) {
-            passwordLayout.setError(getString(R.string.error_invalid_password));
+            passwordEditText.setError(getString(R.string.error_invalid_password));
             focusView = passwordEditText;
             cancel = true;
         }
 
         // Check email
         if (TextUtils.isEmpty(email)) {
-            emailLayout.setError(getString(R.string.error_field_required));
+            emailEditText.setError(getString(R.string.error_field_required));
             focusView = emailEditText;
             cancel = true;
         } else if (!isEmailValid(email)) {
-            emailLayout.setError(getString(R.string.error_invalid_email));
+            emailEditText.setError(getString(R.string.error_invalid_email));
             focusView = emailEditText;
             cancel = true;
         }
@@ -130,6 +133,7 @@ public class LoginActivity extends AppCompatActivity {
             performLogin(email, password);
         }
     }
+
 
     private void performLogin(String email, String password) {
         userRepository.signIn(email, password, new UserRepository.UserCallback() {

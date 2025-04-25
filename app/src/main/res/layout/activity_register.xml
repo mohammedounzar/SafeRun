@@ -22,39 +22,9 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/back"
             android:src="@drawable/ic_back"
-            app:tint="@color/white"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <TextView
-            android:id="@+id/register_title"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="36dp"
-            android:layout_marginEnd="24dp"
-            android:fontFamily="@font/montserrat_bold"
-            android:text="@string/join_saferun"
-            android:textColor="@color/white"
-            android:textSize="28sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/back_button" />
-
-        <TextView
-            android:id="@+id/register_subtitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="24dp"
-            android:fontFamily="@font/montserrat"
-            android:text="@string/create_account_subtitle"
-            android:textColor="@color/white_70"
-            android:textSize="16sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/register_title" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/register_card"
@@ -70,7 +40,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/register_subtitle"
+            app:layout_constraintTop_toBottomOf="@+id/back_button"
             app:layout_constraintVertical_bias="0.0">
 
             <LinearLayout
@@ -87,14 +57,14 @@
                     android:textColor="@color/text_primary"
                     android:textSize="18sp" />
 
+                <!-- Full Name Field -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/name_text_input_layout"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="@string/full_name"
-                    app:startIconDrawable="@drawable/ic_person">
+                    android:hint="@string/full_name">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/name_edit_text"
@@ -104,58 +74,81 @@
                         android:inputType="textPersonName" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/email_text_input_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Email Field -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="@string/email"
-                    app:startIconDrawable="@drawable/ic_email">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:background="@drawable/edit_text_outline_background">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="12dp"
+                        android:contentDescription="@string/email"
+                        android:src="@drawable/ic_email" />
+
+                    <EditText
                         android:id="@+id/email_edit_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@null"
                         android:fontFamily="@font/montserrat"
-                        android:inputType="textEmailAddress" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:hint="@string/email"
+                        android:inputType="textEmailAddress"
+                        android:padding="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary" />
+                </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/password_text_input_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Password Field -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="@string/password"
-                    app:endIconMode="password_toggle"
-                    app:startIconDrawable="@drawable/ic_lock">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:background="@drawable/edit_text_outline_background">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <EditText
                         android:id="@+id/password_edit_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@null"
                         android:fontFamily="@font/montserrat"
-                        android:inputType="textPassword" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:hint="@string/password"
+                        android:inputType="textPassword"
+                        android:padding="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary" />
+                </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/confirm_password_text_input_layout"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                <!-- Confirm Password Field -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:hint="@string/confirm_password"
-                    app:endIconMode="password_toggle"
-                    app:startIconDrawable="@drawable/ic_lock">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:background="@drawable/edit_text_outline_background">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <EditText
                         android:id="@+id/confirm_password_edit_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@null"
                         android:fontFamily="@font/montserrat"
-                        android:inputType="textPassword" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:hint="@string/confirm_password"
+                        android:inputType="textPassword"
+                        android:padding="12dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary" />
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="match_parent"
@@ -166,7 +159,8 @@
                     android:textColor="@color/text_primary"
                     android:textSize="18sp" />
 
-                <LinearLayout
+                <RadioGroup
+                    android:id="@+id/role_radio_group"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
@@ -183,35 +177,32 @@
                         android:focusable="true"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="2dp"
-                        app:checkedIcon="@drawable/ic_check_circle"
-                        app:checkedIconTint="@color/accent_color"
                         app:strokeColor="@color/primary_color"
                         app:strokeWidth="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="16dp">
+                            android:orientation="horizontal"
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+
+                            <RadioButton
+                                android:id="@+id/athlete_radio_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:buttonTint="@color/accent_color"
+                                android:checked="true" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
                                 android:fontFamily="@font/montserrat_medium"
                                 android:text="@string/athlete"
                                 android:textColor="@color/text_primary"
-                                android:textSize="16sp" />
+                                android:textSize="10sp" />
                         </LinearLayout>
-
-                        <RadioButton
-                            android:id="@+id/athlete_radio_button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="top|end"
-                            android:layout_margin="8dp"
-                            android:checked="true"
-                            android:buttonTint="@color/accent_color" />
                     </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.card.MaterialCardView
@@ -225,36 +216,33 @@
                         android:focusable="true"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="2dp"
-                        app:checkedIcon="@drawable/ic_check_circle"
-                        app:checkedIconTint="@color/accent_color"
                         app:strokeColor="@color/primary_color"
                         app:strokeWidth="2dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:gravity="center"
-                            android:orientation="vertical"
-                            android:padding="16dp">
+                            android:orientation="horizontal"
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+
+                            <RadioButton
+                                android:id="@+id/coach_radio_button"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:buttonTint="@color/accent_color" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
                                 android:fontFamily="@font/montserrat_medium"
                                 android:text="@string/coach"
                                 android:textColor="@color/text_primary"
-                                android:textSize="16sp" />
+                                android:textSize="10sp" />
                         </LinearLayout>
-
-                        <RadioButton
-                            android:id="@+id/coach_radio_button"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="top|end"
-                            android:layout_margin="8dp"
-                            android:buttonTint="@color/accent_color" />
                     </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/register_button"

@@ -72,40 +72,58 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/email_text_input_layout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <!-- Email Field with Icon -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:hint="@string/email"
-                app:startIconDrawable="@drawable/ic_email">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="@drawable/edit_text_outline_background">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="12dp"
+                    android:contentDescription="@string/email"
+                    android:src="@drawable/ic_email" />
+
+                <EditText
                     android:id="@+id/email_edit_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
                     android:fontFamily="@font/montserrat"
-                    android:inputType="textEmailAddress" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:hint="@string/email"
+                    android:inputType="textEmailAddress"
+                    android:padding="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary" />
+            </LinearLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/password_text_input_layout"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <!-- Password Field with Icon -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="@string/password"
-                app:endIconMode="password_toggle"
-                app:startIconDrawable="@drawable/ic_lock">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:background="@drawable/edit_text_outline_background">
 
-                <com.google.android.material.textfield.TextInputEditText
+                <EditText
                     android:id="@+id/password_edit_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
                     android:fontFamily="@font/montserrat"
-                    android:inputType="textPassword" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:hint="@string/password"
+                    android:inputType="textPassword"
+                    android:padding="12dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/forgot_password_text_view"

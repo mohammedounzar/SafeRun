@@ -1,6 +1,7 @@
 package com.example.saferun.ui.auth;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -24,6 +25,7 @@ import com.example.saferun.data.repository.UserRepository;
 import com.example.saferun.ui.athlete.AthleteDashboardActivity;
 import com.example.saferun.ui.coach.CoachDashboardActivity;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -62,13 +64,10 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // TextInput Layouts
-        nameLayout = findViewById(R.id.name_text_input_layout);
-        emailLayout = findViewById(R.id.email_text_input_layout);
-        passwordLayout = findViewById(R.id.password_text_input_layout);
-        confirmPasswordLayout = findViewById(R.id.confirm_password_text_input_layout);
+        // Back button
+        backButton = findViewById(R.id.back_button);
 
-        // EditTexts
+        // EditTexts (now regular EditText instead of TextInputEditText)
         nameEditText = findViewById(R.id.name_edit_text);
         emailEditText = findViewById(R.id.email_edit_text);
         passwordEditText = findViewById(R.id.password_edit_text);
@@ -78,17 +77,14 @@ public class RegisterActivity extends AppCompatActivity {
         athleteRadioButton = findViewById(R.id.athlete_radio_button);
         coachRadioButton = findViewById(R.id.coach_radio_button);
 
-        // Buttons
+        // Button and TextView
         registerButton = findViewById(R.id.register_button);
-        backButton = findViewById(R.id.back_button);
-
-        // TextViews
         loginTextView = findViewById(R.id.login_text_view);
 
         // Progress bar
         progressBar = findViewById(R.id.progress_bar);
 
-        // Card views for role selection
+        // Cards for selection
         athleteCard = findViewById(R.id.athlete_card);
         coachCard = findViewById(R.id.coach_card);
 
@@ -97,6 +93,7 @@ public class RegisterActivity extends AppCompatActivity {
         athleteCard.setStrokeWidth(4);
         coachCard.setStrokeWidth(1);
     }
+
 
     private void setupClickListeners() {
         registerButton.setOnClickListener(v -> attemptRegister());
@@ -126,11 +123,14 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void attemptRegister() {
-        // Reset errors
-        nameLayout.setError(null);
-        emailLayout.setError(null);
-        passwordLayout.setError(null);
-        confirmPasswordLayout.setError(null);
+        // Reset errors - now we'll need to handle errors differently
+        // since we're not using TextInputLayout anymore
+
+        // Clear any existing error states
+        nameEditText.setError(null);
+        emailEditText.setError(null);
+        passwordEditText.setError(null);
+        confirmPasswordEditText.setError(null);
 
         // Get values
         String name = nameEditText.getText().toString().trim();
@@ -145,40 +145,40 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Check name
         if (TextUtils.isEmpty(name)) {
-            nameLayout.setError(getString(R.string.error_field_required));
+            nameEditText.setError(getString(R.string.error_field_required));
             focusView = nameEditText;
             cancel = true;
         }
 
         // Check email
         if (TextUtils.isEmpty(email)) {
-            emailLayout.setError(getString(R.string.error_field_required));
+            emailEditText.setError(getString(R.string.error_field_required));
             focusView = emailEditText;
             cancel = true;
         } else if (!isEmailValid(email)) {
-            emailLayout.setError(getString(R.string.error_invalid_email));
+            emailEditText.setError(getString(R.string.error_invalid_email));
             focusView = emailEditText;
             cancel = true;
         }
 
         // Check password
         if (TextUtils.isEmpty(password)) {
-            passwordLayout.setError(getString(R.string.error_field_required));
+            passwordEditText.setError(getString(R.string.error_field_required));
             focusView = passwordEditText;
             cancel = true;
         } else if (password.length() < 6) {
-            passwordLayout.setError(getString(R.string.error_invalid_password));
+            passwordEditText.setError(getString(R.string.error_invalid_password));
             focusView = passwordEditText;
             cancel = true;
         }
 
         // Check password confirmation
         if (TextUtils.isEmpty(confirmPassword)) {
-            confirmPasswordLayout.setError(getString(R.string.error_field_required));
+            confirmPasswordEditText.setError(getString(R.string.error_field_required));
             focusView = confirmPasswordEditText;
             cancel = true;
         } else if (!password.equals(confirmPassword)) {
-            confirmPasswordLayout.setError(getString(R.string.error_password_mismatch));
+            confirmPasswordEditText.setError(getString(R.string.error_password_mismatch));
             focusView = confirmPasswordEditText;
             cancel = true;
         }
