@@ -2,6 +2,7 @@ package com.example.saferun.ui.coach;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -78,6 +79,7 @@ public class AthleteListActivity extends AppCompatActivity implements AthleteAda
                 athletes.clear();
                 athletes.addAll(users);
                 athleteAdapter.notifyDataSetChanged();
+                Log.d("AthleteListActivity", "Loaded " + athletes.size() + " athletes");
 
                 // Show empty view if there are no athletes
                 if (athletes.isEmpty()) {

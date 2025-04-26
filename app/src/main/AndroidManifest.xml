@@ -12,6 +12,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SafeRun"
         tools:targetApi="31">
+        <!-- New activities for team request functionality -->
+        <activity
+            android:name=".ui.coach.AddAthletesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.athlete.AthleteTeamRequestsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.coach.AthleteListActivity"
+            android:exported="false" />
+        <!-- Original activities -->
         <activity
             android:name=".ui.common.BaseActivity"
             android:exported="false" />

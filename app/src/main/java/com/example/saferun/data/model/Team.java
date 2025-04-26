@@ -18,7 +18,8 @@ public class Team implements Serializable {
         createdAt = System.currentTimeMillis();
     }
 
-    public Team(String name, String description, String coachId) {
+    public Team(String id,String name, String description, String coachId) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.coachId = coachId;
