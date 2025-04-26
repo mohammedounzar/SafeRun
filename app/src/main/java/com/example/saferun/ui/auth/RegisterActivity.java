@@ -97,29 +97,42 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         registerButton.setOnClickListener(v -> attemptRegister());
+        loginTextView.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(v -> finish());
 
-        loginTextView.setOnClickListener(v -> {
-            finish();
-        });
+        // Common listener for cards
+        View.OnClickListener cardClick = v -> {
+            boolean isAthlete = (v == athleteCard);
+            athleteRadioButton.setChecked(isAthlete);
+            coachRadioButton.setChecked(!isAthlete);
+            updateCardStroke();
+        };
 
-        backButton.setOnClickListener(v -> {
-            finish();
-        });
+        athleteCard.setOnClickListener(cardClick);
+        coachCard.setOnClickListener(cardClick);
 
-        // Role selection with visual feedback
-        athleteCard.setOnClickListener(v -> {
+        // Also handle direct radio-button taps
+        athleteRadioButton.setOnClickListener(v -> {
             athleteRadioButton.setChecked(true);
             coachRadioButton.setChecked(false);
-            athleteCard.setStrokeWidth(4);
-            coachCard.setStrokeWidth(1);
+            updateCardStroke();
         });
-
-        coachCard.setOnClickListener(v -> {
+        coachRadioButton.setOnClickListener(v -> {
             coachRadioButton.setChecked(true);
             athleteRadioButton.setChecked(false);
+            updateCardStroke();
+        });
+    }
+
+    private void updateCardStroke() {
+        // highlight the checked role’s card
+        if (athleteRadioButton.isChecked()) {
+            athleteCard.setStrokeWidth(4);
+            coachCard.setStrokeWidth(1);
+        } else {
             coachCard.setStrokeWidth(4);
             athleteCard.setStrokeWidth(1);
-        });
+        }
     }
 
     private void attemptRegister() {

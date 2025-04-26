@@ -2,6 +2,7 @@ package com.example.saferun.data.firebase;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -49,10 +50,13 @@ public class FirebaseAuthManager {
     }
 
     public void registerUser(String email, String password, String name, String role, AuthCallback callback) {
+        Log.d("FirebaseAuthManager", "Attempting to register user: " + email + " with role: " + role);
+
         firebaseAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
+                        Log.d("FirebaseAuthManager", "Firebase user created with UID: " + firebaseUser.getUid());
 
                         // Update display name
                         UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
@@ -62,6 +66,8 @@ public class FirebaseAuthManager {
                         firebaseUser.updateProfile(profileUpdates)
                                 .addOnCompleteListener(profileTask -> {
                                     if (profileTask.isSuccessful()) {
+                                        Log.d("FirebaseAuthManager", "Profile updated successfully");
+
                                         // Create user object
                                         User user = new User(
                                                 firebaseUser.getUid(),
@@ -75,21 +81,27 @@ public class FirebaseAuthManager {
                                         firestoreManager.saveUser(user, new FirestoreManager.FirestoreCallback() {
                                             @Override
                                             public void onSuccess() {
+                                                Log.d("FirebaseAuthManager", "User saved to Firestore successfully");
                                                 callback.onSuccess(user);
                                             }
 
                                             @Override
                                             public void onError(String errorMessage) {
+                                                Log.e("FirebaseAuthManager", "Failed to save user to Firestore: " + errorMessage);
                                                 callback.onError("Failed to save user data: " + errorMessage);
                                             }
                                         });
                                     } else {
+                                        Log.e("FirebaseAuthManager", "Failed to update profile: " +
+                                                (profileTask.getException() != null ? profileTask.getException().getMessage() : "Unknown error"));
                                         callback.onError("Failed to update profile: " +
                                                 (profileTask.getException() != null ?
                                                         profileTask.getException().getMessage() : "Unknown error"));
                                     }
                                 });
                     } else {
+                        Log.e("FirebaseAuthManager", "Registration failed: " +
+                                (task.getException() != null ? task.getException().getMessage() : "Unknown error"));
                         callback.onError("Registration failed: " +
                                 (task.getException() != null ?
                                         task.getException().getMessage() : "Unknown error"));
