@@ -12,6 +12,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SafeRun"
         tools:targetApi="31">
+        <!-- Run Session activities -->
+        <activity
+            android:name=".ui.coach.RunSessionDetailActivity"
+            android:exported="false" />
         <!-- New activities for team request functionality -->
         <activity
             android:name=".ui.coach.AddAthletesActivity"

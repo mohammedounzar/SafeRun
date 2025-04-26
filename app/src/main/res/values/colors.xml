@@ -47,4 +47,8 @@
     <color name="divider_color">#BDBDBD</color>
 
     <color name="transparent">#00000000</color>
+
+    <!-- Additional colors for run sessions -->
+    <color name="active_color">#FFA726</color>
+    <color name="success_color">#66BB6A</color>
 </resources>
