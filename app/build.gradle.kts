@@ -66,6 +66,7 @@ dependencies {
     // Firebase — versions are managed by the BoM
     implementation(libs.firebase.auth)
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database")
 
     // Testing
     testImplementation(libs.junit)
@@ -78,4 +79,6 @@ dependencies {
     implementation("de.hdodenhof:circleimageview:3.1.0")
 
     implementation("com.squareup.picasso:picasso:2.71828")
+
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

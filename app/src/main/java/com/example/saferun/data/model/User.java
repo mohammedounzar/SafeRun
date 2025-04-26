@@ -10,6 +10,9 @@ public class User implements Serializable {
     private String role;  // "athlete" or "coach"
     private double performanceScore;  // Only relevant for athletes
 
+    // Session-specific fields (transient, not stored in Firestore)
+    private transient String sessionStatus; // For tracking status in a specific session
+
     public User() {
         // Required empty constructor for Firebase
     }
@@ -69,6 +72,14 @@ public class User implements Serializable {
 
     public void setPerformanceScore(double performanceScore) {
         this.performanceScore = performanceScore;
+    }
+
+    public String getSessionStatus() {
+        return sessionStatus;
+    }
+
+    public void setSessionStatus(String sessionStatus) {
+        this.sessionStatus = sessionStatus;
     }
 
     public boolean isCoach() {

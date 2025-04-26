@@ -1,8 +1,10 @@
 package com.example.saferun.data.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RunSession implements Serializable {
@@ -11,15 +13,16 @@ public class RunSession implements Serializable {
     private String title;
     private String description;
     private long duration; // in minutes
-    private double distance; // in kilometers
+    private double distance; // in km
     private Date date;
-    private String status; // "scheduled" | "active" | "completed"
-    private Map<String, Map<String, Object>> athletes; // Map of athlete IDs to their session details
+    private String status; // "scheduled", "active", "completed"
+    private Map<String, String> athleteStatuses; // Map of athlete ID to status ("assigned", "active", "completed")
+    private List<String> athletes; // List of athlete IDs participating in this session
 
     public RunSession() {
         // Required empty constructor for Firebase
-        this.athletes = new HashMap<>();
-        this.status = "scheduled";
+        athleteStatuses = new HashMap<>();
+        athletes = new ArrayList<>();
     }
 
     public RunSession(String id, String coachId, String title, String description,
@@ -32,7 +35,8 @@ public class RunSession implements Serializable {
         this.distance = distance;
         this.date = date;
         this.status = "scheduled";
-        this.athletes = new HashMap<>();
+        this.athleteStatuses = new HashMap<>();
+        this.athletes = new ArrayList<>();
     }
 
     public String getId() {
@@ -99,26 +103,59 @@ public class RunSession implements Serializable {
         this.status = status;
     }
 
-    public Map<String, Map<String, Object>> getAthletes() {
+    public Map<String, String> getAthleteStatuses() {
+        return athleteStatuses;
+    }
+
+    public void setAthleteStatuses(Map<String, String> athleteStatuses) {
+        this.athleteStatuses = athleteStatuses;
+    }
+
+    public List<String> getAthletes() {
         return athletes;
     }
 
-    public void setAthletes(Map<String, Map<String, Object>> athletes) {
+    public void setAthletes(List<String> athletes) {
         this.athletes = athletes;
     }
 
     public void addAthlete(String athleteId) {
-        Map<String, Object> athleteData = new HashMap<>();
-        athleteData.put("status", "assigned");
-        athleteData.put("startTime", null);
-        athleteData.put("endTime", null);
-        athleteData.put("performanceScore", 0);
+        if (athleteStatuses == null) {
+            athleteStatuses = new HashMap<>();
+        }
+        athleteStatuses.put(athleteId, "assigned");
 
-        this.athletes.put(athleteId, athleteData);
+        if (athletes == null) {
+            athletes = new ArrayList<>();
+        }
+        if (!athletes.contains(athleteId)) {
+            athletes.add(athleteId);
+        }
     }
 
     public void removeAthlete(String athleteId) {
-        this.athletes.remove(athleteId);
+        if (athleteStatuses != null) {
+            athleteStatuses.remove(athleteId);
+        }
+
+        if (athletes != null) {
+            athletes.remove(athleteId);
+        }
+    }
+
+    public void updateAthleteStatus(String athleteId, String status) {
+        if (athleteStatuses == null) {
+            athleteStatuses = new HashMap<>();
+        }
+        athleteStatuses.put(athleteId, status);
+
+        // Make sure athlete is in the athletes list
+        if (athletes == null) {
+            athletes = new ArrayList<>();
+        }
+        if (!athletes.contains(athleteId)) {
+            athletes.add(athleteId);
+        }
     }
 
     public boolean isScheduled() {
@@ -131,5 +168,9 @@ public class RunSession implements Serializable {
 
     public boolean isCompleted() {
         return "completed".equals(status);
+    }
+
+    public int getAthleteCount() {
+        return athletes != null ? athletes.size() : 0;
     }
 }

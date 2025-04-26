@@ -97,8 +97,11 @@ public class CreateSessionActivity extends AppCompatActivity {
         // Load athletes
         loadAthletes();
 
-        // Set up create button
-        createButton.setOnClickListener(v -> validateAndCreateSession());
+        // Change the button text from "Create Session" to "Start Running"
+        createButton.setText("Start Running");
+
+        // Set up create button with updated behavior
+        createButton.setOnClickListener(v -> validateAndCreateSession(true));
     }
 
     private void initViews() {
@@ -256,7 +259,7 @@ public class CreateSessionActivity extends AppCompatActivity {
         }
     }
 
-    private void validateAndCreateSession() {
+    private void validateAndCreateSession(boolean startImmediately) {
         // Reset errors
         titleLayout.setError(null);
         durationLayout.setError(null);
@@ -320,22 +323,43 @@ public class CreateSessionActivity extends AppCompatActivity {
         }
 
         if (isValid) {
-            createRunSession(title, description, duration, distance, date, selectedAthleteIds);
+            createRunSession(title, description, duration, distance, date, selectedAthleteIds, startImmediately);
         }
     }
 
     private void createRunSession(String title, String description, long duration,
-                                  double distance, Date date, List<String> athleteIds) {
+                                  double distance, Date date, List<String> athleteIds,
+                                  boolean startImmediately) {
         showProgress(true);
 
         runSessionRepository.createRunSession(title, description, duration, distance, date,
                 athleteIds, new RunSessionRepository.RunSessionCallback() {
                     @Override
                     public void onSuccess(RunSession session) {
-                        showProgress(false);
-                        Toast.makeText(CreateSessionActivity.this,
-                                "Run session created successfully", Toast.LENGTH_SHORT).show();
-                        finish();
+                        if (startImmediately) {
+                            // Start the session
+                            runSessionRepository.startSession(session.getId(), new RunSessionRepository.OperationCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    showProgress(false);
+                                    // Navigate to the LiveSessionActivity
+                                    LiveSessionActivity.start(CreateSessionActivity.this, session.getId());
+                                    finish();
+                                }
+
+                                @Override
+                                public void onError(String errorMessage) {
+                                    showProgress(false);
+                                    Toast.makeText(CreateSessionActivity.this,
+                                            "Error starting session: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        } else {
+                            showProgress(false);
+                            Toast.makeText(CreateSessionActivity.this,
+                                    "Run session created successfully", Toast.LENGTH_SHORT).show();
+                            finish();
+                        }
                     }
 
                     @Override

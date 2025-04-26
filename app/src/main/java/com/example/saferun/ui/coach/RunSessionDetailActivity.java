@@ -182,7 +182,7 @@ public class RunSessionDetailActivity extends AppCompatActivity {
         final int[] loadedCount = {0};
         final int totalAthletes = session.getAthletes().size();
 
-        for (String athleteId : session.getAthletes().keySet()) {
+        for (String athleteId : session.getAthletes()) {
             userRepository.getUserById(athleteId, new UserRepository.UserCallback() {
                 @Override
                 public void onSuccess(User user) {

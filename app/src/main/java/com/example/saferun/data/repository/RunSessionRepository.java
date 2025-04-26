@@ -5,11 +5,10 @@ import android.util.Log;
 import com.example.saferun.data.firebase.FirebaseAuthManager;
 import com.example.saferun.data.firebase.FirestoreManager;
 import com.example.saferun.data.model.RunSession;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,16 +19,15 @@ import java.util.UUID;
 
 public class RunSessionRepository {
     private static final String TAG = "RunSessionRepository";
+    private static final String COLLECTION_RUN_SESSIONS = "runSessions";
 
-    private FirebaseFirestore db;
     private FirebaseAuthManager authManager;
+    private FirebaseFirestore db;
     private static RunSessionRepository instance;
 
-    private static final String RUN_SESSIONS_COLLECTION = "runSessions";
-
     private RunSessionRepository() {
-        db = FirebaseFirestore.getInstance();
         authManager = FirebaseAuthManager.getInstance();
+        db = FirebaseFirestore.getInstance();
     }
 
     public static synchronized RunSessionRepository getInstance() {
@@ -67,172 +65,214 @@ public class RunSessionRepository {
         RunSession session = new RunSession(sessionId, coachId, title, description,
                 duration, distance, date);
 
-        // Add athletes to the session
+        // Add selected athletes to the session
         for (String athleteId : athleteIds) {
             session.addAthlete(athleteId);
         }
 
-        // Convert session to a map for Firestore
-        Map<String, Object> sessionMap = convertSessionToMap(session);
+        // Convert session to Map for Firestore
+        Map<String, Object> sessionMap = sessionToMap(session);
 
-        Log.d(TAG, "Creating run session with ID: " + sessionId);
-        db.collection(RUN_SESSIONS_COLLECTION).document(sessionId)
+        // Save to Firestore
+        db.collection(COLLECTION_RUN_SESSIONS).document(sessionId)
                 .set(sessionMap)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Run session created successfully");
+                    Log.d(TAG, "Run session created with ID: " + sessionId);
                     callback.onSuccess(session);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error creating run session", e);
-                    callback.onError("Failed to create session: " + e.getMessage());
+                    callback.onError("Failed to create run session: " + e.getMessage());
                 });
     }
 
     public void getRunSession(String sessionId, RunSessionCallback callback) {
-        db.collection(RUN_SESSIONS_COLLECTION).document(sessionId)
+        db.collection(COLLECTION_RUN_SESSIONS).document(sessionId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        RunSession session = convertDocumentToSession(documentSnapshot);
+                        RunSession session = mapToRunSession(documentSnapshot);
                         callback.onSuccess(session);
                     } else {
-                        callback.onError("Session not found");
+                        callback.onError("Run session not found");
                     }
                 })
                 .addOnFailureListener(e -> {
-                    callback.onError("Error getting session: " + e.getMessage());
+                    Log.e(TAG, "Error getting run session", e);
+                    callback.onError("Failed to get run session: " + e.getMessage());
                 });
     }
 
-    public void getSessionsForCoach(RunSessionsCallback callback) {
+    public void getRunSessionsByCoach(RunSessionsCallback callback) {
         String coachId = authManager.getCurrentUserId();
         if (coachId == null) {
             callback.onError("You must be logged in to view sessions");
             return;
         }
 
-        db.collection(RUN_SESSIONS_COLLECTION)
+        db.collection(COLLECTION_RUN_SESSIONS)
                 .whereEqualTo("coachId", coachId)
-                .orderBy("date", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<RunSession> sessions = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        RunSession session = convertDocumentToSession(document);
+                    for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                        RunSession session = mapToRunSession(document);
                         sessions.add(session);
                     }
                     callback.onSuccess(sessions);
                 })
                 .addOnFailureListener(e -> {
-                    callback.onError("Error getting sessions: " + e.getMessage());
+                    Log.e(TAG, "Error getting run sessions", e);
+                    callback.onError("Failed to get run sessions: " + e.getMessage());
                 });
     }
 
-    public void getSessionsForAthlete(String athleteId, RunSessionsCallback callback) {
-        db.collection(RUN_SESSIONS_COLLECTION)
-                .whereArrayContains("athleteIds", athleteId)  // Using a helper field to query
-                .orderBy("date", Query.Direction.DESCENDING)
+    public void getRunSessionsByAthlete(String athleteId, RunSessionsCallback callback) {
+        db.collection(COLLECTION_RUN_SESSIONS)
+                .whereArrayContains("athleteIds", athleteId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<RunSession> sessions = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        RunSession session = convertDocumentToSession(document);
+                    for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                        RunSession session = mapToRunSession(document);
                         sessions.add(session);
                     }
                     callback.onSuccess(sessions);
                 })
                 .addOnFailureListener(e -> {
-                    callback.onError("Error getting sessions: " + e.getMessage());
+                    Log.e(TAG, "Error getting run sessions", e);
+                    callback.onError("Failed to get run sessions: " + e.getMessage());
+                });
+    }
+
+    public void updateSessionStatus(String sessionId, String status, OperationCallback callback) {
+        db.collection(COLLECTION_RUN_SESSIONS).document(sessionId)
+                .update("status", status)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Run session status updated to: " + status);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating run session status", e);
+                    callback.onError("Failed to update session status: " + e.getMessage());
+                });
+    }
+
+    public void updateAthleteStatus(String sessionId, String athleteId, String status,
+                                    OperationCallback callback) {
+        db.collection(COLLECTION_RUN_SESSIONS).document(sessionId)
+                .update("athleteStatuses." + athleteId, status)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Athlete status updated to: " + status);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating athlete status", e);
+                    callback.onError("Failed to update athlete status: " + e.getMessage());
                 });
     }
 
     public void updateRunSession(RunSession session, RunSessionCallback callback) {
-        Map<String, Object> sessionMap = convertSessionToMap(session);
+        if (session == null || session.getId() == null) {
+            callback.onError("Invalid session data");
+            return;
+        }
 
-        db.collection(RUN_SESSIONS_COLLECTION).document(session.getId())
-                .update(sessionMap)
+        // Convert session to Map for Firestore
+        Map<String, Object> sessionMap = sessionToMap(session);
+
+        // Update in Firestore
+        db.collection(COLLECTION_RUN_SESSIONS).document(session.getId())
+                .set(sessionMap)
                 .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Run session updated with ID: " + session.getId());
                     callback.onSuccess(session);
                 })
                 .addOnFailureListener(e -> {
-                    callback.onError("Error updating session: " + e.getMessage());
+                    Log.e(TAG, "Error updating run session", e);
+                    callback.onError("Failed to update run session: " + e.getMessage());
                 });
     }
 
     public void deleteRunSession(String sessionId, OperationCallback callback) {
-        db.collection(RUN_SESSIONS_COLLECTION).document(sessionId)
+        if (sessionId == null || sessionId.isEmpty()) {
+            callback.onError("Invalid session ID");
+            return;
+        }
+
+        db.collection(COLLECTION_RUN_SESSIONS).document(sessionId)
                 .delete()
                 .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Run session deleted with ID: " + sessionId);
                     callback.onSuccess();
                 })
                 .addOnFailureListener(e -> {
-                    callback.onError("Error deleting session: " + e.getMessage());
+                    Log.e(TAG, "Error deleting run session", e);
+                    callback.onError("Failed to delete run session: " + e.getMessage());
                 });
     }
 
-    private Map<String, Object> convertSessionToMap(RunSession session) {
-        Map<String, Object> sessionMap = new HashMap<>();
-        sessionMap.put("id", session.getId());
-        sessionMap.put("coachId", session.getCoachId());
-        sessionMap.put("title", session.getTitle());
-        sessionMap.put("description", session.getDescription());
-        sessionMap.put("duration", session.getDuration());
-        sessionMap.put("distance", session.getDistance());
-        sessionMap.put("date", session.getDate());
-        sessionMap.put("status", session.getStatus());
-        sessionMap.put("athletes", session.getAthletes());
-
-        // Create a helper field with athlete IDs for querying
-        List<String> athleteIds = new ArrayList<>(session.getAthletes().keySet());
-        sessionMap.put("athleteIds", athleteIds);
-
-        return sessionMap;
+    public void startSession(String sessionId, OperationCallback callback) {
+        updateSessionStatus(sessionId, "active", callback);
     }
 
-    private RunSession convertDocumentToSession(QueryDocumentSnapshot document) {
-        return convertDocumentToSession(document.getId(), document.getData());
+    public void completeSession(String sessionId, OperationCallback callback) {
+        updateSessionStatus(sessionId, "completed", callback);
     }
 
-    private RunSession convertDocumentToSession(com.google.firebase.firestore.DocumentSnapshot document) {
-        return convertDocumentToSession(document.getId(), document.getData());
+    private Map<String, Object> sessionToMap(RunSession session) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", session.getId());
+        map.put("coachId", session.getCoachId());
+        map.put("title", session.getTitle());
+        map.put("description", session.getDescription());
+        map.put("duration", session.getDuration());
+        map.put("distance", session.getDistance());
+        map.put("date", session.getDate());
+        map.put("status", session.getStatus());
+        map.put("athleteStatuses", session.getAthleteStatuses());
+        map.put("athletes", session.getAthletes());  // Add the athletes list
+        return map;
     }
 
-    private RunSession convertDocumentToSession(String id, Map<String, Object> data) {
+    private RunSession mapToRunSession(DocumentSnapshot document) {
         RunSession session = new RunSession();
-        session.setId(id);
-        session.setCoachId((String) data.get("coachId"));
-        session.setTitle((String) data.get("title"));
-        session.setDescription((String) data.get("description"));
+        session.setId(document.getId());
+        session.setCoachId(document.getString("coachId"));
+        session.setTitle(document.getString("title"));
+        session.setDescription(document.getString("description"));
 
-        if (data.get("duration") instanceof Long) {
-            session.setDuration((Long) data.get("duration"));
+        // Handle numeric values
+        if (document.contains("duration")) {
+            session.setDuration(document.getLong("duration"));
+        }
+        if (document.contains("distance")) {
+            session.setDistance(document.getDouble("distance"));
         }
 
-        if (data.get("distance") instanceof Double) {
-            session.setDistance((Double) data.get("distance"));
-        } else if (data.get("distance") instanceof Long) {
-            session.setDistance(((Long) data.get("distance")).doubleValue());
+        // Handle date
+        if (document.contains("date")) {
+            session.setDate(document.getDate("date"));
         }
 
-        if (data.get("date") instanceof Date) {
-            session.setDate((Date) data.get("date"));
-        } else if (data.get("date") instanceof com.google.firebase.Timestamp) {
-            session.setDate(((com.google.firebase.Timestamp) data.get("date")).toDate());
-        }
+        // Handle status
+        session.setStatus(document.getString("status"));
 
-        session.setStatus((String) data.get("status"));
-
-        // Convert athletes map
-        Map<String, Map<String, Object>> athletes = new HashMap<>();
-        if (data.get("athletes") instanceof Map) {
-            Map<String, Object> athletesMap = (Map<String, Object>) data.get("athletes");
-            for (Map.Entry<String, Object> entry : athletesMap.entrySet()) {
-                if (entry.getValue() instanceof Map) {
-                    athletes.put(entry.getKey(), (Map<String, Object>) entry.getValue());
-                }
+        // Handle athlete statuses
+        Map<String, String> athleteStatuses = new HashMap<>();
+        Map<String, Object> athleteStatusesMap = (Map<String, Object>) document.get("athleteStatuses");
+        if (athleteStatusesMap != null) {
+            for (Map.Entry<String, Object> entry : athleteStatusesMap.entrySet()) {
+                athleteStatuses.put(entry.getKey(), (String) entry.getValue());
             }
         }
-        session.setAthletes(athletes);
+        session.setAthleteStatuses(athleteStatuses);
+
+        // Handle athletes list
+        List<String> athletes = (List<String>) document.get("athletes");
+        if (athletes != null) {
+            session.setAthletes(athletes);
+        }
 
         return session;
     }
