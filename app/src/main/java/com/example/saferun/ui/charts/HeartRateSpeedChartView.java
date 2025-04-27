@@ -142,12 +142,12 @@ public class HeartRateSpeedChartView extends FrameLayout {
         }
 
         // Limit data points to keep performance optimal
-        if (heartRateEntries.size() > 100) {
-            heartRateEntries.remove(0);
-        }
-        if (speedEntries.size() > 100) {
-            speedEntries.remove(0);
-        }
+//        if (heartRateEntries.size() > 100) {  // 100
+//            heartRateEntries.remove(0);
+//        }
+//        if (speedEntries.size() > 100) {  // 100
+//            speedEntries.remove(0);
+//        }
 
         // Notify data changed
         data.notifyDataChanged();

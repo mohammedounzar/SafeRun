@@ -2,6 +2,10 @@ package com.example.saferun.data.model;
 
 import java.io.Serializable;
 
+/**
+ * Model class that represents sensor data collected during a run session.
+ * Modified to match the fields used by the Python simulator.
+ */
 public class SensorData implements Serializable {
     private long timestamp;
     private int heartRate;
@@ -9,6 +13,8 @@ public class SensorData implements Serializable {
     private double speed;
     private String status;
     private boolean anomalyDetected;
+    private String sessionId;
+    private String athleteId;
 
     public SensorData() {
         // Required empty constructor for Firebase
@@ -69,5 +75,35 @@ public class SensorData implements Serializable {
 
     public void setAnomalyDetected(boolean anomalyDetected) {
         this.anomalyDetected = anomalyDetected;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public String getAthleteId() {
+        return athleteId;
+    }
+
+    public void setAthleteId(String athleteId) {
+        this.athleteId = athleteId;
+    }
+
+    @Override
+    public String toString() {
+        return "SensorData{" +
+                "timestamp=" + timestamp +
+                ", heartRate=" + heartRate +
+                ", temperature=" + temperature +
+                ", speed=" + speed +
+                ", status='" + status + '\'' +
+                ", anomalyDetected=" + anomalyDetected +
+                ", sessionId='" + sessionId + '\'' +
+                ", athleteId='" + athleteId + '\'' +
+                '}';
     }
 }

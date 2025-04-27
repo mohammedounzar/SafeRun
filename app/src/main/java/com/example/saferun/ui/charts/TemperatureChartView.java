@@ -126,9 +126,9 @@ public class TemperatureChartView extends FrameLayout {
         }
 
         // Limit data points to keep performance optimal
-        if (temperatureEntries.size() > 100) {
-            temperatureEntries.remove(0);
-        }
+//        if (temperatureEntries.size() > 100) {  // 100
+//            temperatureEntries.remove(0);
+//        }
 
         // Notify data changed
         data.notifyDataChanged();
