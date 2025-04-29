@@ -57,7 +57,9 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
     private TextView alertsCountTextView;
     private MaterialCardView alertCardView;
     private TextView alertMessageTextView;
+    private TextView alertSourceTextView; // New field to show if ML detected the anomaly
     private Button dismissAlertButton;
+    private Button contactAthleteButton; // New button to contact athlete in case of emergency
     private ImageButton backButton;
     private ProgressBar progressBar;
 
@@ -77,6 +79,10 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
     private Timer dataRefreshTimer;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private int alertsCount = 0;
+    private SensorData lastSensorData; // To keep track of the last reading
+
+    // Flag to track if athlete has been contacted for current anomaly
+    private boolean athleteContacted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +140,20 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
         alertsCountTextView = findViewById(R.id.alerts_count);
         alertCardView = findViewById(R.id.alert_card);
         alertMessageTextView = findViewById(R.id.alert_message);
+
+        // Set up additional views if they exist in your layout
+        try {
+//            alertSourceTextView = findViewById(R.id.alert_source);
+            contactAthleteButton = findViewById(R.id.contact_athlete_button);
+
+            // Set up contact button if it exists
+            if (contactAthleteButton != null) {
+                contactAthleteButton.setOnClickListener(v -> contactAthlete());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Some new UI elements not found in layout. Using fallback layout.");
+        }
+
         dismissAlertButton = findViewById(R.id.dismiss_alert_button);
         backButton = findViewById(R.id.back_button);
         progressBar = findViewById(R.id.progress_bar);
@@ -272,6 +292,7 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
         sensorDataRepository.getLatestSensorData(sessionId, athleteId, new SensorDataRepository.SensorDataCallback() {
             @Override
             public void onSuccess(SensorData sensorData) {
+                lastSensorData = sensorData; // Store for reference
                 mainHandler.post(() -> updateUI(sensorData));
             }
 
@@ -445,6 +466,8 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
         // Show alert card if not already visible
         if (alertCardView.getVisibility() != View.VISIBLE) {
             alertCardView.setVisibility(View.VISIBLE);
+            // Reset contacted flag for new alert
+            athleteContacted = false;
         }
 
         // Determine what's abnormal and set appropriate message
@@ -462,11 +485,46 @@ public class AthleteMonitoringActivity extends AppCompatActivity {
             message.append("Temperature critically low (").append(String.format("%.1f°C", sensorData.getTemperature())).append("). ");
         }
 
+        if (sensorData.getSpeed() == 0 && "active".equals(sensorData.getStatus())) {
+            message.append("Athlete has stopped while session is active. ");
+        }
+
         alertMessageTextView.setText(message.toString());
+
+        // Update alert source if the view exists
+        if (alertSourceTextView != null) {
+            // This is a simplified approach. In reality, you would need to pass this information from the backend
+            alertSourceTextView.setText("Detected by: ML Prediction API");
+            alertSourceTextView.setVisibility(View.VISIBLE);
+        }
+
+        // Show contact button if it exists and athlete hasn't been contacted yet
+        if (contactAthleteButton != null && !athleteContacted) {
+            contactAthleteButton.setVisibility(View.VISIBLE);
+        }
     }
 
     private void dismissAlert() {
         alertCardView.setVisibility(View.GONE);
+        if (contactAthleteButton != null) {
+            contactAthleteButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void contactAthlete() {
+        // In a real app, this would trigger a notification to the athlete or initiate communication
+        new AlertDialog.Builder(this)
+                .setTitle("Contact " + athleteName)
+                .setMessage("In a real implementation, this would send an emergency notification to the athlete or initiate a voice call.")
+                .setPositiveButton("Send Alert", (dialog, which) -> {
+                    Toast.makeText(this, "Emergency alert sent to " + athleteName, Toast.LENGTH_SHORT).show();
+                    athleteContacted = true;
+                    if (contactAthleteButton != null) {
+                        contactAthleteButton.setVisibility(View.GONE);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void setAlertsCount(int count) {

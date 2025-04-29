@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_ml_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="ML API Settings"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_test_api"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="Test ML API"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="Settings"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_about"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="About"
+        app:showAsAction="never" />
+</menu>

@@ -121,6 +121,17 @@
                         android:textSize="16sp" />
 
                     <Button
+                        android:id="@+id/contact_athlete_button"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="Contact Athlete"
+                        android:textColor="@color/error_color"
+                        app:strokeColor="@color/error_color" />
+
+                    <Button
                         android:id="@+id/dismiss_alert_button"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="wrap_content"

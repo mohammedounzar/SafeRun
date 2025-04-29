@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.example.saferun.data.firebase.FirebaseAuthManager;
 import com.example.saferun.data.model.SensorData;
+import com.example.saferun.ml.AnomalyPredictionClient;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -22,11 +23,13 @@ public class SensorDataRepository {
     private FirebaseAuthManager authManager;
     private DatabaseReference sensorDataRef;
     private static SensorDataRepository instance;
+    private AnomalyPredictionClient predictionClient;
 
     private SensorDataRepository() {
         authManager = FirebaseAuthManager.getInstance();
         // Updated path to match the simulator's path (sensor_data instead of sensorData)
         sensorDataRef = FirebaseDatabase.getInstance().getReference("sensor_data");
+        predictionClient = AnomalyPredictionClient.getInstance();
         Log.d(TAG, "Initialized SensorDataRepository with path: sensor_data");
     }
 
@@ -77,7 +80,29 @@ public class SensorDataRepository {
 
                     // Create SensorData object
                     SensorData sensorData = createSensorDataFromSnapshot(dataSnapshot, sessionId, athleteId);
-                    callback.onSuccess(sensorData);
+
+                    // Check if data requires anomaly prediction
+                    if (!sensorData.isAnomalyDetected()) {
+                        // Use ML prediction API to detect anomalies
+                        detectAnomaliesWithML(sensorData, athleteId, new AnomalyPredictionClient.PredictionCallback() {
+                            @Override
+                            public void onSuccess(boolean isAnomaly) {
+                                sensorData.setAnomalyDetected(isAnomaly);
+                                callback.onSuccess(sensorData);
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                Log.e(TAG, "ML prediction failed: " + errorMessage);
+                                // Fall back to basic anomaly detection
+                                detectAnomaliesLocally(sensorData);
+                                callback.onSuccess(sensorData);
+                            }
+                        });
+                    } else {
+                        // If anomaly already detected, return as is
+                        callback.onSuccess(sensorData);
+                    }
 
                 } catch (Exception e) {
                     Log.e(TAG, "Error parsing sensor data directly: " + e.getMessage(), e);
@@ -106,7 +131,31 @@ public class SensorDataRepository {
 
                             if (latestData != null) {
                                 Log.d(TAG, "Found latest sensor data from child nodes");
-                                callback.onSuccess(latestData);
+
+                                // Final data object to be returned
+                                final SensorData finalData = latestData;
+
+                                // Check for anomalies before returning
+                                if (!finalData.isAnomalyDetected()) {
+                                    // Use ML prediction API
+                                    detectAnomaliesWithML(finalData, athleteId, new AnomalyPredictionClient.PredictionCallback() {
+                                        @Override
+                                        public void onSuccess(boolean isAnomaly) {
+                                            finalData.setAnomalyDetected(isAnomaly);
+                                            callback.onSuccess(finalData);
+                                        }
+
+                                        @Override
+                                        public void onError(String errorMessage) {
+                                            Log.e(TAG, "ML prediction failed: " + errorMessage);
+                                            // Fall back to basic anomaly detection
+                                            detectAnomaliesLocally(finalData);
+                                            callback.onSuccess(finalData);
+                                        }
+                                    });
+                                } else {
+                                    callback.onSuccess(finalData);
+                                }
                                 return;
                             }
                         }
@@ -191,8 +240,6 @@ public class SensorDataRepository {
                 if (anomalyValue instanceof Boolean) {
                     sensorData.setAnomalyDetected((Boolean) anomalyValue);
                 }
-            } else {
-                detectAnomalies(sensorData);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error reading fields directly from snapshot: " + e.getMessage(), e);
@@ -250,8 +297,6 @@ public class SensorDataRepository {
                         if (anomalyObj instanceof Boolean) {
                             sensorData.setAnomalyDetected((Boolean) anomalyObj);
                         }
-                    } else {
-                        detectAnomalies(sensorData);
                     }
                 }
             } catch (ClassCastException cce) {
@@ -330,25 +375,36 @@ public class SensorDataRepository {
     }
 
     /**
-     * Detect anomalies in sensor data
+     * Detect anomalies using ML API
+     */
+    private void detectAnomaliesWithML(SensorData sensorData, String athleteId, AnomalyPredictionClient.PredictionCallback callback) {
+        Log.d(TAG, "Detecting anomalies with ML API for athlete: " + athleteId);
+        predictionClient.predictAnomaly(athleteId, sensorData, callback);
+    }
+
+    /**
+     * Detect anomalies using local thresholds as fallback
      * This is a simple implementation - in a real application,
      * this might involve more sophisticated algorithms
      */
-    private void detectAnomalies(SensorData sensorData) {
+    private void detectAnomaliesLocally(SensorData sensorData) {
         boolean anomalyDetected = false;
 
         // Check heart rate anomalies (too high or too low)
         if (sensorData.getHeartRate() > 180 || sensorData.getHeartRate() < 40) {
+            Log.d(TAG, "Heart rate anomaly detected: " + sensorData.getHeartRate());
             anomalyDetected = true;
         }
 
         // Check temperature anomalies
         if (sensorData.getTemperature() > 39.0 || sensorData.getTemperature() < 35.0) {
+            Log.d(TAG, "Temperature anomaly detected: " + sensorData.getTemperature());
             anomalyDetected = true;
         }
 
         // Check speed anomalies (sudden drop to zero while session is active)
         if (sensorData.getSpeed() == 0 && "active".equals(sensorData.getStatus())) {
+            Log.d(TAG, "Speed anomaly detected: Athlete stopped while session active");
             anomalyDetected = true;
         }
 

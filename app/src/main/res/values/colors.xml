@@ -53,4 +53,6 @@
     <color name="success_color">#66BB6A</color>
 
     <color name="error_light">#FFEBEE</color>
+
+    <color name="light_gray">#D3D3D3</color>
 </resources>

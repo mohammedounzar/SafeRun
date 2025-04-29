@@ -2,7 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Add internet permission for API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
+        android:name=".app.SafeRunApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -11,7 +15,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SafeRun"
+        android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <!-- ML API Configuration and Test Activities -->
+        <activity
+            android:name=".ml.AnomalyApiConfigActivity"
+            android:exported="false"
+            android:label="ML API Settings"
+            android:parentActivityName=".ui.coach.CoachDashboardActivity" />
+        <activity
+            android:name=".ml.AnomalyPredictionTestActivity"
+            android:exported="false"
+            android:label="API Test Tool"
+            android:parentActivityName=".ml.AnomalyApiConfigActivity" />
+
         <!-- Run Session activities -->
         <activity
             android:name=".ui.coach.RunSessionDetailActivity"
