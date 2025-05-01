@@ -24,8 +24,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.saferun.R;
 import com.example.saferun.data.model.RunSession;
+import com.example.saferun.data.model.Team;
+import com.example.saferun.data.model.TeamRequest;
 import com.example.saferun.data.model.User;
 import com.example.saferun.data.repository.RunSessionRepository;
+import com.example.saferun.data.repository.TeamRepository;
+import com.example.saferun.data.repository.TeamRequestRepository;
 import com.example.saferun.data.repository.UserRepository;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -35,8 +39,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class CreateSessionActivity extends AppCompatActivity {
     private static final String TAG = "CreateSessionActivity";
@@ -194,41 +200,109 @@ public class CreateSessionActivity extends AppCompatActivity {
 
         Log.d("CreateSessionActivity", "Starting to load athletes");
 
-        userRepository.getAthletes(new UserRepository.UsersCallback() {
+        // Get the current coach ID
+        String coachId = userRepository.getCurrentUserId();
+        if (coachId == null) {
+            showProgress(false);
+            showNoAthletesMessage(true);
+            Log.d("CreateSessionActivity", "No coach ID found");
+            return;
+        }
+
+        // Get the current coach details to use for team request queries
+        userRepository.getUserById(coachId, new UserRepository.UserCallback() {
             @Override
-            public void onSuccess(List<User> users) {
-                showProgress(false);
+            public void onSuccess(User coach) {
+                // Use TeamRequestRepository to find accepted requests
+                TeamRequestRepository requestRepository = TeamRequestRepository.getInstance();
+                requestRepository.getRequestsByCoach(coachId, new TeamRequestRepository.TeamRequestsCallback() {
+                    @Override
+                    public void onSuccess(List<TeamRequest> requests) {
+                        Log.d("CreateSessionActivity", "Found " + requests.size() + " team requests");
 
-                Log.d("CreateSessionActivity", "Athletes loaded successfully: " +
-                        (users != null ? users.size() : 0) + " athletes");
+                        // Filter to keep only accepted requests
+                        List<String> acceptedAthleteIds = new ArrayList<>();
+                        for (TeamRequest request : requests) {
+                            if ("accepted".equals(request.getStatus())) {
+                                acceptedAthleteIds.add(request.getAthleteId());
+                                Log.d("CreateSessionActivity", "Adding accepted athlete: " + request.getAthleteName());
+                            }
+                        }
 
-                if (users != null && !users.isEmpty()) {
-                    // Clear and update the list
-                    athletes.clear();
-                    athletes.addAll(users);
+                        if (acceptedAthleteIds.isEmpty()) {
+                            // No accepted athletes
+                            showProgress(false);
+                            showNoAthletesMessage(true);
+                            Log.d("CreateSessionActivity", "No accepted athletes found");
+                            return;
+                        }
 
-                    Log.d("CreateSessionActivity", "Athletes list updated, now contains " +
-                            athletes.size() + " athletes");
+                        // Now get the athlete details
+                        fetchAthleteDetails(acceptedAthleteIds);
+                    }
 
-                    // Update the adapter with the new list
-                    athleteAdapter.updateAthletes(athletes);
-
-                    showNoAthletesMessage(false);
-                } else {
-                    Log.d("CreateSessionActivity", "No athletes found");
-                    showNoAthletesMessage(true);
-                }
+                    @Override
+                    public void onError(String errorMessage) {
+                        showProgress(false);
+                        showNoAthletesMessage(true);
+                        Log.e("CreateSessionActivity", "Error loading team requests: " + errorMessage);
+                        Toast.makeText(CreateSessionActivity.this,
+                                "Error loading athletes: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
             public void onError(String errorMessage) {
-                Log.e("CreateSessionActivity", "Error loading athletes: " + errorMessage);
                 showProgress(false);
                 showNoAthletesMessage(true);
+                Log.e("CreateSessionActivity", "Error getting coach data: " + errorMessage);
                 Toast.makeText(CreateSessionActivity.this,
-                        "Error loading athletes: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        "Error loading current coach: " + errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void fetchAthleteDetails(List<String> athleteIds) {
+        final int[] loadedCount = {0};
+        final int totalAthletes = athleteIds.size();
+        athletes.clear();
+
+        Log.d("CreateSessionActivity", "Fetching details for " + totalAthletes + " athletes");
+
+        for (String athleteId : athleteIds) {
+            userRepository.getUserById(athleteId, new UserRepository.UserCallback() {
+                @Override
+                public void onSuccess(User user) {
+                    athletes.add(user);
+                    loadedCount[0]++;
+                    Log.d("CreateSessionActivity", "Loaded athlete " + loadedCount[0] + "/" + totalAthletes +
+                            ": " + user.getName());
+
+                    if (loadedCount[0] >= totalAthletes) {
+                        // All athletes loaded
+                        Log.d("CreateSessionActivity", "All athlete details loaded successfully");
+                        athleteAdapter.updateAthletes(athletes);
+                        showNoAthletesMessage(athletes.isEmpty());
+                        showProgress(false);
+                    }
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    loadedCount[0]++;
+                    Log.e("CreateSessionActivity", "Error loading athlete " + athleteId + ": " + errorMessage);
+
+                    if (loadedCount[0] >= totalAthletes) {
+                        // All attempts completed
+                        Log.d("CreateSessionActivity", "Completed loading athlete details with some errors");
+                        athleteAdapter.updateAthletes(athletes);
+                        showNoAthletesMessage(athletes.isEmpty());
+                        showProgress(false);
+                    }
+                }
+            });
+        }
     }
 
     private void showNoAthletesMessage(boolean show) {

@@ -27,7 +27,9 @@ import com.example.saferun.data.repository.RunSessionRepository;
 import com.example.saferun.data.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class LiveSessionActivity extends AppCompatActivity implements ParticipatingAthleteAdapter.OnAthleteClickListener {
 
@@ -166,8 +168,20 @@ public class LiveSessionActivity extends AppCompatActivity implements Participat
         // Clear current list
         participatingAthletes.clear();
 
+        // Create a Set to track athletes we've already processed
+        final Set<String> processedAthleteIds = new HashSet<>();
+
         // Load each athlete's data
         for (String athleteId : athleteIds) {
+            // Skip if we've already processed this athlete
+            if (processedAthleteIds.contains(athleteId)) {
+                loadedCount[0]++;
+                continue;
+            }
+
+            // Mark this athlete as processed
+            processedAthleteIds.add(athleteId);
+
             userRepository.getUserById(athleteId, new UserRepository.UserCallback() {
                 @Override
                 public void onSuccess(User user) {
