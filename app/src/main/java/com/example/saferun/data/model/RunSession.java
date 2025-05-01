@@ -120,11 +120,7 @@ public class RunSession implements Serializable {
     }
 
     public void addAthlete(String athleteId) {
-        if (athleteStatuses == null) {
-            athleteStatuses = new HashMap<>();
-        }
-        athleteStatuses.put(athleteId, "assigned");
-
+        // Only add to athletes list, don't create athleteStatuses entry
         if (athletes == null) {
             athletes = new ArrayList<>();
         }
@@ -144,6 +140,7 @@ public class RunSession implements Serializable {
     }
 
     public void updateAthleteStatus(String athleteId, String status) {
+        // This is only called when we explicitly need to update status
         if (athleteStatuses == null) {
             athleteStatuses = new HashMap<>();
         }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
     <!-- Add internet permission for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -17,8 +16,16 @@
         android:theme="@style/Theme.SafeRun"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
-
-        <!-- ML API Configuration and Test Activities -->
+        <activity
+            android:name=".ui.coach.GlobalPerformanceActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.coach.AthletePerformanceActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.coach.RunSessionListActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SafeRun.NoActionBar" /> <!-- ML API Configuration and Test Activities -->
         <activity
             android:name=".ml.AnomalyApiConfigActivity"
             android:exported="false"
@@ -28,13 +35,10 @@
             android:name=".ml.AnomalyPredictionTestActivity"
             android:exported="false"
             android:label="API Test Tool"
-            android:parentActivityName=".ml.AnomalyApiConfigActivity" />
-
-        <!-- Run Session activities -->
+            android:parentActivityName=".ml.AnomalyApiConfigActivity" /> <!-- Run Session activities -->
         <activity
             android:name=".ui.coach.RunSessionDetailActivity"
-            android:exported="false" />
-        <!-- New activities for team request functionality -->
+            android:exported="false" /> <!-- New activities for team request functionality -->
         <activity
             android:name=".ui.coach.AddAthletesActivity"
             android:exported="false" />
@@ -43,8 +47,7 @@
             android:exported="false" />
         <activity
             android:name=".ui.coach.AthleteListActivity"
-            android:exported="false" />
-        <!-- Original activities -->
+            android:exported="false" /> <!-- Original activities -->
         <activity
             android:name=".ui.common.BaseActivity"
             android:exported="false" />

@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -62,8 +61,8 @@ public class CoachDashboardActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+//        toolbar = findViewById(R.id.toolbar);
+//        setSupportActionBar(toolbar);
 
         userNameTextView = findViewById(R.id.user_name_text);
         createSessionButton = findViewById(R.id.create_session_button);
@@ -86,8 +85,9 @@ public class CoachDashboardActivity extends AppCompatActivity {
         });
 
         viewSessionsButton.setOnClickListener(v -> {
-            // Will be implemented in future
-            Toast.makeText(this, "View Run Sessions clicked", Toast.LENGTH_SHORT).show();
+            // Navigate to the RunSessionListActivity
+            Intent intent = new Intent(CoachDashboardActivity.this, RunSessionListActivity.class);
+            startActivity(intent);
         });
     }
 

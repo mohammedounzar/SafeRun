@@ -195,12 +195,38 @@ public class SensorDataRepository {
         sensorData.setAnomalyDetected(false);
 
         try {
+            // Try to read timestamp directly from key
+            String timestampKey = snapshot.getKey();
+            if (timestampKey != null) {
+                try {
+                    // Some implementations store timestamp as key
+                    sensorData.setTimestamp(Long.parseLong(timestampKey));
+                    Log.d(TAG, "Using timestamp from key: " + timestampKey);
+                } catch (NumberFormatException e) {
+                    // Not a numeric timestamp key, try to read from value
+                    if (snapshot.hasChild("timestamp")) {
+                        Object timeValue = snapshot.child("timestamp").getValue();
+                        if (timeValue instanceof Number) {
+                            sensorData.setTimestamp(((Number) timeValue).longValue());
+                            Log.d(TAG, "Using timestamp from value: " + sensorData.getTimestamp());
+                        }
+                    }
+                }
+            }
+
             // Try to read fields directly from the snapshot
             if (snapshot.hasChild("heart_rate")) {
                 Object heartRateValue = snapshot.child("heart_rate").getValue();
                 if (heartRateValue instanceof Number) {
                     sensorData.setHeartRate(((Number) heartRateValue).intValue());
                     Log.d(TAG, "Found heart rate: " + sensorData.getHeartRate());
+                }
+            } else if (snapshot.hasChild("heartRate")) {
+                // Try alternative field name
+                Object heartRateValue = snapshot.child("heartRate").getValue();
+                if (heartRateValue instanceof Number) {
+                    sensorData.setHeartRate(((Number) heartRateValue).intValue());
+                    Log.d(TAG, "Found heart rate (alternative field): " + sensorData.getHeartRate());
                 }
             }
 
@@ -220,14 +246,6 @@ public class SensorDataRepository {
                 }
             }
 
-            if (snapshot.hasChild("timestamp")) {
-                Object timeValue = snapshot.child("timestamp").getValue();
-                if (timeValue instanceof Number) {
-                    sensorData.setTimestamp(((Number) timeValue).longValue());
-                    Log.d(TAG, "Found timestamp: " + sensorData.getTimestamp());
-                }
-            }
-
             if (snapshot.hasChild("status")) {
                 Object statusValue = snapshot.child("status").getValue();
                 if (statusValue != null) {
@@ -240,72 +258,50 @@ public class SensorDataRepository {
                 if (anomalyValue instanceof Boolean) {
                     sensorData.setAnomalyDetected((Boolean) anomalyValue);
                 }
+            } else if (snapshot.hasChild("anomalyDetected")) {
+                // Try alternative field name
+                Object anomalyValue = snapshot.child("anomalyDetected").getValue();
+                if (anomalyValue instanceof Boolean) {
+                    sensorData.setAnomalyDetected((Boolean) anomalyValue);
+                }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error reading fields directly from snapshot: " + e.getMessage(), e);
 
-            // Fallback: try to see if the snapshot itself contains the data (not a map)
-            try {
-                // Check if the snapshot itself is a value rather than an object
-                Object rawValue = snapshot.getValue();
+            // If the snapshot itself is a Map, try to extract values directly
+            if (snapshot.getValue() instanceof Map) {
+                Map<String, Object> valueMap = (Map<String, Object>) snapshot.getValue();
 
-                if (rawValue instanceof Map) {
-                    Log.d(TAG, "Snapshot contains a Map, processing fields...");
-                    Map<String, Object> dataMap = (Map<String, Object>) rawValue;
+                // Log all keys for debugging
+                Log.d(TAG, "Map keys: " + valueMap.keySet());
 
-                    if (dataMap.containsKey("heart_rate")) {
-                        Object heartRateObj = dataMap.get("heart_rate");
-                        if (heartRateObj instanceof Number) {
-                            sensorData.setHeartRate(((Number) heartRateObj).intValue());
-                            Log.d(TAG, "Found heart rate from map: " + sensorData.getHeartRate());
-                        }
-                    }
-
-                    if (dataMap.containsKey("temperature")) {
-                        Object tempObj = dataMap.get("temperature");
-                        if (tempObj instanceof Number) {
-                            sensorData.setTemperature(((Number) tempObj).doubleValue());
-                            Log.d(TAG, "Found temperature from map: " + sensorData.getTemperature());
-                        }
-                    }
-
-                    if (dataMap.containsKey("speed")) {
-                        Object speedObj = dataMap.get("speed");
-                        if (speedObj instanceof Number) {
-                            sensorData.setSpeed(((Number) speedObj).doubleValue());
-                            Log.d(TAG, "Found speed from map: " + sensorData.getSpeed());
-                        }
-                    }
-
-                    if (dataMap.containsKey("timestamp")) {
-                        Object timestampObj = dataMap.get("timestamp");
-                        if (timestampObj instanceof Number) {
-                            sensorData.setTimestamp(((Number) timestampObj).longValue());
-                            Log.d(TAG, "Found timestamp from map: " + sensorData.getTimestamp());
-                        }
-                    }
-
-                    if (dataMap.containsKey("status")) {
-                        Object statusObj = dataMap.get("status");
-                        if (statusObj != null) {
-                            sensorData.setStatus(statusObj.toString());
-                        }
-                    }
-
-                    if (dataMap.containsKey("anomaly_detected")) {
-                        Object anomalyObj = dataMap.get("anomaly_detected");
-                        if (anomalyObj instanceof Boolean) {
-                            sensorData.setAnomalyDetected((Boolean) anomalyObj);
-                        }
+                // Check all possible field names for heart rate
+                for (String key : new String[]{"heart_rate", "heartRate", "heart-rate", "heartrate"}) {
+                    if (valueMap.containsKey(key) && valueMap.get(key) instanceof Number) {
+                        sensorData.setHeartRate(((Number) valueMap.get(key)).intValue());
+                        Log.d(TAG, "Found heart rate from map with key '" + key + "': " + sensorData.getHeartRate());
+                        break;
                     }
                 }
-            } catch (ClassCastException cce) {
-                Log.e(TAG, "ClassCastException when processing raw value: " + cce.getMessage());
-                // Continue with the default values set initially
-            } catch (Exception ex) {
-                Log.e(TAG, "Error in fallback approach: " + ex.getMessage(), ex);
-                // Continue with the default values set initially
+
+                // Check all possible field names for temperature
+                for (String key : new String[]{"temperature", "temp", "bodyTemp", "body_temp"}) {
+                    if (valueMap.containsKey(key) && valueMap.get(key) instanceof Number) {
+                        sensorData.setTemperature(((Number) valueMap.get(key)).doubleValue());
+                        Log.d(TAG, "Found temperature from map with key '" + key + "': " + sensorData.getTemperature());
+                        break;
+                    }
+                }
+
+                // Check all possible field names for speed
+                for (String key : new String[]{"speed", "velocity"}) {
+                    if (valueMap.containsKey(key) && valueMap.get(key) instanceof Number) {
+                        sensorData.setSpeed(((Number) valueMap.get(key)).doubleValue());
+                        Log.d(TAG, "Found speed from map with key '" + key + "': " + sensorData.getSpeed());
+                        break;
+                    }
+                }
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Error while parsing sensor data fields: " + e.getMessage(), e);
         }
 
         return sensorData;
@@ -314,48 +310,112 @@ public class SensorDataRepository {
     /**
      * Get sensor data history for a specific athlete in a session
      */
+    // Modifications to SensorDataRepository.java to handle Firestore structure properly
+
+    /**
+     * Get sensor data history for a specific athlete in a session
+     */
+    // Method in SensorDataRepository that only retrieves real data from Firebase
+    // Modified getSensorDataHistory method for SensorDataRepository.java
     public void getSensorDataHistory(String sessionId, String athleteId, int limit, SensorDataListCallback callback) {
         Log.d(TAG, "Getting sensor data history for session: " + sessionId + ", athlete: " + athleteId);
 
-        // Reference to the specific path
-        DatabaseReference pathRef = sensorDataRef.child(sessionId).child(athleteId);
+        // Reference to the specific path where the data should be
+        DatabaseReference pathRef = sensorDataRef
+                .child(sessionId)
+                .child(athleteId);
 
         pathRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d(TAG, "History path exists: " + dataSnapshot.exists() + ", has children: " + dataSnapshot.hasChildren());
+                Log.d(TAG, "Data snapshot exists: " + dataSnapshot.exists() +
+                        ", has children: " + dataSnapshot.hasChildren() +
+                        ", child count: " + dataSnapshot.getChildrenCount());
 
                 if (!dataSnapshot.exists()) {
-                    callback.onError("No sensor data history found");
+                    Log.e(TAG, "No sensor data found at path: sensor_data/" + sessionId + "/" + athleteId);
+                    callback.onError("No sensor data found for this athlete and session");
                     return;
                 }
 
                 List<SensorData> dataList = new ArrayList<>();
 
-                // If the snapshot has children, process each child
+                // First check if we have direct properties at this level (your current structure)
+                if (dataSnapshot.hasChild("heart_rate") || dataSnapshot.hasChild("temperature") ||
+                        dataSnapshot.hasChild("speed")) {
+
+                    Log.d(TAG, "Found direct sensor data properties at this level");
+
+                    // Extract values from current node
+                    SensorData data = new SensorData();
+                    data.setSessionId(sessionId);
+                    data.setAthleteId(athleteId);
+
+                    // Get timestamp (use current time if not present)
+                    if (dataSnapshot.hasChild("timestamp")) {
+                        data.setTimestamp(dataSnapshot.child("timestamp").getValue(Long.class));
+                    } else {
+                        data.setTimestamp(System.currentTimeMillis());
+                    }
+
+                    // Get heart rate
+                    if (dataSnapshot.hasChild("heart_rate")) {
+                        data.setHeartRate(dataSnapshot.child("heart_rate").getValue(Integer.class));
+                    } else {
+                        data.setHeartRate(0);
+                    }
+
+                    // Get temperature
+                    if (dataSnapshot.hasChild("temperature")) {
+                        data.setTemperature(dataSnapshot.child("temperature").getValue(Double.class));
+                    } else {
+                        data.setTemperature(0.0);
+                    }
+
+                    // Get speed
+                    if (dataSnapshot.hasChild("speed")) {
+                        data.setSpeed(dataSnapshot.child("speed").getValue(Double.class));
+                    } else {
+                        data.setSpeed(0.0);
+                    }
+
+                    // Get anomaly status
+                    if (dataSnapshot.hasChild("anomaly_detected")) {
+                        data.setAnomalyDetected(dataSnapshot.child("anomaly_detected").getValue(Boolean.class));
+                    } else {
+                        data.setAnomalyDetected(false);
+                    }
+
+                    // Set status
+                    data.setStatus("active");
+
+                    // Add to list
+                    dataList.add(data);
+                    Log.d(TAG, "Added direct sensor data point: " + data);
+
+                    callback.onSuccess(dataList);
+                    return;
+                }
+
+                // If we didn't find direct properties, try to process as child nodes
+                // (This is the original approach in your code)
                 if (dataSnapshot.hasChildren()) {
                     for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
                         try {
                             SensorData data = createSensorDataFromSnapshot(childSnapshot, sessionId, athleteId);
                             dataList.add(data);
+                            Log.d(TAG, "Added sensor data from child: " + data);
                         } catch (Exception e) {
-                            Log.e(TAG, "Error parsing history item: " + e.getMessage());
-                            // Continue with other entries
+                            Log.e(TAG, "Error parsing child sensor data: " + e.getMessage(), e);
                         }
-                    }
-                } else {
-                    // If no children, try to parse the snapshot itself
-                    try {
-                        SensorData data = createSensorDataFromSnapshot(dataSnapshot, sessionId, athleteId);
-                        dataList.add(data);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error parsing single history item: " + e.getMessage());
                     }
                 }
 
-                // Sort by timestamp (ascending)
-                Collections.sort(dataList, (data1, data2) ->
-                        Long.compare(data1.getTimestamp(), data2.getTimestamp()));
+                if (dataList.isEmpty()) {
+                    Log.e(TAG, "No valid sensor data found after parsing");
+                    callback.onError("No valid sensor data found");
+                    return;
+                }
 
                 // Limit results if needed
                 if (dataList.size() > limit) {

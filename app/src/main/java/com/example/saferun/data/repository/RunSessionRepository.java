@@ -68,6 +68,7 @@ public class RunSessionRepository {
         // Add selected athletes to the session
         for (String athleteId : athleteIds) {
             session.addAthlete(athleteId);
+            session.updateAthleteStatus(athleteId, "assigned");
         }
 
         // Convert session to Map for Firestore
@@ -127,20 +128,34 @@ public class RunSessionRepository {
                 });
     }
 
+    // Method in RunSessionRepository that needs to be fixed to properly fetch sessions for an athlete
     public void getRunSessionsByAthlete(String athleteId, RunSessionsCallback callback) {
+        Log.d(TAG, "Getting run sessions for athlete ID: " + athleteId);
+
+        if (athleteId == null || athleteId.isEmpty()) {
+            callback.onError("Invalid athlete ID");
+            return;
+        }
+
+        // FIXED: Modified query to correctly search for athlete in athleteIds array
         db.collection(COLLECTION_RUN_SESSIONS)
-                .whereArrayContains("athleteIds", athleteId)
+                .whereArrayContains("athletes", athleteId)  // Use athletes list instead of athleteIds
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<RunSession> sessions = new ArrayList<>();
+                    Log.d(TAG, "Found " + queryDocumentSnapshots.size() + " sessions for athlete");
+
                     for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
                         RunSession session = mapToRunSession(document);
                         sessions.add(session);
+                        Log.d(TAG, "Added session: ID=" + session.getId() +
+                                ", Title=" + session.getTitle() +
+                                ", Status=" + session.getStatus());
                     }
                     callback.onSuccess(sessions);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting run sessions", e);
+                    Log.e(TAG, "Error getting run sessions for athlete", e);
                     callback.onError("Failed to get run sessions: " + e.getMessage());
                 });
     }
