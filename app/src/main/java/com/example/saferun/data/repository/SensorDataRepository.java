@@ -3,6 +3,7 @@ package com.example.saferun.data.repository;
 import android.util.Log;
 
 import com.example.saferun.data.firebase.FirebaseAuthManager;
+import com.example.saferun.data.firebase.FirestoreManager;
 import com.example.saferun.data.model.SensorData;
 import com.example.saferun.ml.AnomalyPredictionClient;
 import com.google.firebase.database.DataSnapshot;
@@ -11,6 +12,9 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,13 +28,14 @@ public class SensorDataRepository {
     private DatabaseReference sensorDataRef;
     private static SensorDataRepository instance;
     private AnomalyPredictionClient predictionClient;
+    private FirestoreManager firestoreManager;
+    private FirebaseFirestore db;
 
     private SensorDataRepository() {
         authManager = FirebaseAuthManager.getInstance();
-        // Updated path to match the simulator's path (sensor_data instead of sensorData)
-        sensorDataRef = FirebaseDatabase.getInstance().getReference("sensor_data");
-        predictionClient = AnomalyPredictionClient.getInstance();
-        Log.d(TAG, "Initialized SensorDataRepository with path: sensor_data");
+        firestoreManager = FirestoreManager.getInstance();
+        db = FirebaseFirestore.getInstance();
+        Log.d(TAG, "Initialized SensorDataRepository");
     }
 
     public static synchronized SensorDataRepository getInstance() {
@@ -320,118 +325,64 @@ public class SensorDataRepository {
     public void getSensorDataHistory(String sessionId, String athleteId, int limit, SensorDataListCallback callback) {
         Log.d(TAG, "Getting sensor data history for session: " + sessionId + ", athlete: " + athleteId);
 
-        // Reference to the specific path where the data should be
-        DatabaseReference pathRef = sensorDataRef
-                .child(sessionId)
-                .child(athleteId);
+        // Build a query for the 'sensor_data' collection
+        // filtered by session_id and athlete_id fields
+        db.collection("sensor_data")
+                .whereEqualTo("session_id", sessionId)
+                .whereEqualTo("athlete_id", athleteId)
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
+                        List<SensorData> dataList = new ArrayList<>();
 
-        pathRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d(TAG, "Data snapshot exists: " + dataSnapshot.exists() +
-                        ", has children: " + dataSnapshot.hasChildren() +
-                        ", child count: " + dataSnapshot.getChildrenCount());
+                        for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
+                            SensorData sensorData = new SensorData();
 
-                if (!dataSnapshot.exists()) {
-                    Log.e(TAG, "No sensor data found at path: sensor_data/" + sessionId + "/" + athleteId);
-                    callback.onError("No sensor data found for this athlete and session");
-                    return;
-                }
+                            // Extract fields directly from the document
+                            if (document.contains("heart_rate")) {
+                                Long heartRate = document.getLong("heart_rate");
+                                sensorData.setHeartRate(heartRate != null ? heartRate.intValue() : 0);
+                            }
 
-                List<SensorData> dataList = new ArrayList<>();
+                            if (document.contains("temperature")) {
+                                Double temperature = document.getDouble("temperature");
+                                sensorData.setTemperature(temperature != null ? temperature : 0.0);
+                            }
 
-                // First check if we have direct properties at this level (your current structure)
-                if (dataSnapshot.hasChild("heart_rate") || dataSnapshot.hasChild("temperature") ||
-                        dataSnapshot.hasChild("speed")) {
+                            if (document.contains("speed")) {
+                                Double speed = document.getDouble("speed");
+                                sensorData.setSpeed(speed != null ? speed : 0.0);
+                            }
 
-                    Log.d(TAG, "Found direct sensor data properties at this level");
+                            if (document.contains("timestamp")) {
+                                Long timestamp = document.getLong("timestamp");
+                                sensorData.setTimestamp(timestamp != null ? timestamp : 0L);
+                            }
 
-                    // Extract values from current node
-                    SensorData data = new SensorData();
-                    data.setSessionId(sessionId);
-                    data.setAthleteId(athleteId);
+                            if (document.contains("anomaly_detected")) {
+                                Boolean anomalyDetected = document.getBoolean("anomaly_detected");
+                                sensorData.setAnomalyDetected(anomalyDetected != null ? anomalyDetected : false);
+                            }
 
-                    // Get timestamp (use current time if not present)
-                    if (dataSnapshot.hasChild("timestamp")) {
-                        data.setTimestamp(dataSnapshot.child("timestamp").getValue(Long.class));
-                    } else {
-                        data.setTimestamp(System.currentTimeMillis());
-                    }
+                            sensorData.setSessionId(sessionId);
+                            sensorData.setAthleteId(athleteId);
 
-                    // Get heart rate
-                    if (dataSnapshot.hasChild("heart_rate")) {
-                        data.setHeartRate(dataSnapshot.child("heart_rate").getValue(Integer.class));
-                    } else {
-                        data.setHeartRate(0);
-                    }
-
-                    // Get temperature
-                    if (dataSnapshot.hasChild("temperature")) {
-                        data.setTemperature(dataSnapshot.child("temperature").getValue(Double.class));
-                    } else {
-                        data.setTemperature(0.0);
-                    }
-
-                    // Get speed
-                    if (dataSnapshot.hasChild("speed")) {
-                        data.setSpeed(dataSnapshot.child("speed").getValue(Double.class));
-                    } else {
-                        data.setSpeed(0.0);
-                    }
-
-                    // Get anomaly status
-                    if (dataSnapshot.hasChild("anomaly_detected")) {
-                        data.setAnomalyDetected(dataSnapshot.child("anomaly_detected").getValue(Boolean.class));
-                    } else {
-                        data.setAnomalyDetected(false);
-                    }
-
-                    // Set status
-                    data.setStatus("active");
-
-                    // Add to list
-                    dataList.add(data);
-                    Log.d(TAG, "Added direct sensor data point: " + data);
-
-                    callback.onSuccess(dataList);
-                    return;
-                }
-
-                // If we didn't find direct properties, try to process as child nodes
-                // (This is the original approach in your code)
-                if (dataSnapshot.hasChildren()) {
-                    for (DataSnapshot childSnapshot : dataSnapshot.getChildren()) {
-                        try {
-                            SensorData data = createSensorDataFromSnapshot(childSnapshot, sessionId, athleteId);
-                            dataList.add(data);
-                            Log.d(TAG, "Added sensor data from child: " + data);
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error parsing child sensor data: " + e.getMessage(), e);
+                            dataList.add(sensorData);
                         }
+
+                        Log.d(TAG, "Retrieved " + dataList.size() + " sensor data points");
+                        callback.onSuccess(dataList);
+                    } else {
+                        Log.w(TAG, "No sensor data found for session:" + sessionId + ", athlete:" + athleteId);
+                        callback.onError("No sensor data found for this athlete and session");
                     }
-                }
-
-                if (dataList.isEmpty()) {
-                    Log.e(TAG, "No valid sensor data found after parsing");
-                    callback.onError("No valid sensor data found");
-                    return;
-                }
-
-                // Limit results if needed
-                if (dataList.size() > limit) {
-                    dataList = dataList.subList(dataList.size() - limit, dataList.size());
-                }
-
-                Log.d(TAG, "Returning " + dataList.size() + " history items");
-                callback.onSuccess(dataList);
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e(TAG, "Database error in history: " + databaseError.getMessage());
-                callback.onError("Database error: " + databaseError.getMessage());
-            }
-        });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting sensor data", e);
+                    callback.onError("Error getting sensor data: " + e.getMessage());
+                });
     }
 
     /**

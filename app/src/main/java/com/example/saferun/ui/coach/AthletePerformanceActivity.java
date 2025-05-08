@@ -36,6 +36,7 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -171,25 +172,20 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         heartRateChart.setDrawGridBackground(false);
         heartRateChart.setBackgroundColor(Color.WHITE);
 
-        // Setup X axis for sessions
         XAxis xAxis = heartRateChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
         xAxis.setGranularity(1f);
-        xAxis.setLabelRotationAngle(45); // Rotate labels for better readability
+        xAxis.setLabelRotationAngle(45);
         xAxis.setLabelCount(5, false);
 
-        // Setup Y axis (heart rate)
         YAxis leftAxis = heartRateChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
         leftAxis.setAxisMinimum(0f);
-        leftAxis.setAxisMaximum(200f); // Max reasonable heart rate
+        leftAxis.setAxisMaximum(200f);
         leftAxis.setDrawGridLines(true);
-
-        // Disable right axis
         heartRateChart.getAxisRight().setEnabled(false);
 
-        // Setup legend
         Legend legend = heartRateChart.getLegend();
         legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
         legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
@@ -200,10 +196,10 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         legend.setTextSize(11f);
         legend.setXEntrySpace(4f);
 
-        // Empty data initially
-        LineData data = new LineData();
-        data.setValueTextSize(10f);
-        heartRateChart.setData(data);
+        heartRateChart.setNoDataText("No heart rate data available");
+
+        // Initial data
+        heartRateChart.setData(new LineData());
     }
 
     private void setupSpeedChart() {
@@ -215,25 +211,20 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         speedChart.setDrawGridBackground(false);
         speedChart.setBackgroundColor(Color.WHITE);
 
-        // Setup X axis for sessions
         XAxis xAxis = speedChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
         xAxis.setGranularity(1f);
-        xAxis.setLabelRotationAngle(45); // Rotate labels for better readability
+        xAxis.setLabelRotationAngle(45);
         xAxis.setLabelCount(5, false);
 
-        // Setup Y axis (speed)
         YAxis leftAxis = speedChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
         leftAxis.setAxisMinimum(0f);
-        leftAxis.setAxisMaximum(20f); // Max reasonable speed in km/h
+        leftAxis.setAxisMaximum(20f);
         leftAxis.setDrawGridLines(true);
-
-        // Disable right axis
         speedChart.getAxisRight().setEnabled(false);
 
-        // Setup legend
         Legend legend = speedChart.getLegend();
         legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
         legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
@@ -244,10 +235,10 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         legend.setTextSize(11f);
         legend.setXEntrySpace(4f);
 
-        // Empty data initially
-        LineData data = new LineData();
-        data.setValueTextSize(10f);
-        speedChart.setData(data);
+        speedChart.setNoDataText("No speed data available");
+
+        // Initial data
+        speedChart.setData(new LineData());
     }
 
     private void setupTemperatureChart() {
@@ -467,6 +458,12 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             }
         }
 
+        Log.d(TAG, "Session " + sessionId + " has " + validHeartRateCount + " valid HR readings.");
+        Log.d(TAG, "All HR values for session " + sessionId + ":");
+        for (SensorData d : dataList) {
+            Log.d(TAG, "HR = " + d.getHeartRate());
+        }
+
         // Calculate averages and store in maps
         if (validHeartRateCount > 0) {
             double avgHeartRate = sumHeartRate / validHeartRateCount;
@@ -559,7 +556,7 @@ public class AthletePerformanceActivity extends AppCompatActivity {
     }
 
     private void updateChartsAndStats() {
-        // Calculate global statistics
+        // Initialize totals
         double totalHeartRateSum = 0;
         int totalHeartRateReadings = 0;
         int globalMaxHeartRate = 0;
@@ -571,33 +568,35 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         double totalTempSum = 0;
         int totalTempReadings = 0;
 
-        // Loop through session data to calculate global statistics
-        for (Map.Entry<String, Double> entry : sessionAvgHeartRate.entrySet()) {
-            totalHeartRateSum += entry.getValue();
-            totalHeartRateReadings++;
+        // Loop through all sensor data to get true global stats
+        for (List<SensorData> dataList : sessionSensorData.values()) {
+            for (SensorData data : dataList) {
+                // Heart Rate
+                int hr = data.getHeartRate();
+                if (hr > 0) {
+                    totalHeartRateSum += hr;
+                    totalHeartRateReadings++;
+                    globalMaxHeartRate = Math.max(globalMaxHeartRate, hr);
+                }
 
-            Integer sessionMax = sessionMaxHeartRate.get(entry.getKey());
-            if (sessionMax != null && sessionMax > globalMaxHeartRate) {
-                globalMaxHeartRate = sessionMax;
+                // Speed
+                double speed = data.getSpeed();
+                if (speed >= 0) {
+                    totalSpeedSum += speed;
+                    totalSpeedReadings++;
+                    globalMaxSpeed = Math.max(globalMaxSpeed, speed);
+                }
+
+                // Temperature
+                double temp = data.getTemperature();
+                if (temp > 0) {
+                    totalTempSum += temp;
+                    totalTempReadings++;
+                }
             }
         }
 
-        for (Map.Entry<String, Double> entry : sessionAvgSpeed.entrySet()) {
-            totalSpeedSum += entry.getValue();
-            totalSpeedReadings++;
-
-            Double sessionMax = sessionMaxSpeed.get(entry.getKey());
-            if (sessionMax != null && sessionMax > globalMaxSpeed) {
-                globalMaxSpeed = sessionMax;
-            }
-        }
-
-        for (Map.Entry<String, Double> entry : sessionAvgTemperature.entrySet()) {
-            totalTempSum += entry.getValue();
-            totalTempReadings++;
-        }
-
-        // Calculate global averages
+        // Calculate averages
         double globalAvgHeartRate = totalHeartRateReadings > 0 ? totalHeartRateSum / totalHeartRateReadings : 0;
         double globalAvgSpeed = totalSpeedReadings > 0 ? totalSpeedSum / totalSpeedReadings : 0;
         double globalAvgTemp = totalTempReadings > 0 ? totalTempSum / totalTempReadings : 0;
@@ -605,7 +604,7 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         // Calculate performance score
         double performanceScore = calculatePerformanceScore(globalAvgHeartRate, globalMaxHeartRate, globalAvgSpeed, globalMaxSpeed);
 
-        // Update UI with statistics
+        // Update UI
         avgHeartRateText.setText(String.format("%.0f bpm", globalAvgHeartRate));
         maxHeartRateText.setText(String.format("%d bpm", globalMaxHeartRate));
         avgTemperatureText.setText(String.format("%.1f°C", globalAvgTemp));
@@ -613,11 +612,12 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         maxSpeedText.setText(String.format("%.1f km/h", globalMaxSpeed));
         performanceScoreText.setText(String.format("%.0f", performanceScore));
 
-        // Update the charts using session-based data
+        // Update charts (uses session-based aggregates)
         updateHeartRateChart();
         updateSpeedChart();
         updateTemperatureChart();
     }
+
 
     private double calculatePerformanceScore(double avgHeartRate, int maxHeartRate,
                                              double avgSpeed, double maxSpeed) {
@@ -646,73 +646,68 @@ public class AthletePerformanceActivity extends AppCompatActivity {
     }
 
     private void updateHeartRateChart() {
-        // Session labels
         List<String> sessionLabels = new ArrayList<>();
-
-        // Create entries for the line chart
         List<Entry> avgHREntries = new ArrayList<>();
         List<Entry> maxHREntries = new ArrayList<>();
 
-        // Limit to last 6 sessions to avoid overcrowding
         int sessionLimit = Math.min(sessions.size(), 6);
         int index = 0;
 
-        // We'll use the most recent sessions for display
         for (int i = Math.max(0, sessions.size() - sessionLimit); i < sessions.size(); i++) {
             RunSession session = sessions.get(i);
             String sessionId = session.getId();
-
-            // Add session label
             String label = abbreviateSessionTitle(session.getTitle());
             sessionLabels.add(label);
 
-            // Add heart rate data if available
-            if (sessionAvgHeartRate.containsKey(sessionId) && sessionMaxHeartRate.containsKey(sessionId)) {
-                double avgHR = sessionAvgHeartRate.get(sessionId);
-                int maxHR = sessionMaxHeartRate.get(sessionId);
-
-                avgHREntries.add(new Entry(index, (float)avgHR));
-                maxHREntries.add(new Entry(index, (float)maxHR));
-
-                index++;
-                Log.d(TAG, "Added heart rate data point for session " + label +
-                        ": avgHR=" + avgHR + ", maxHR=" + maxHR);
+            if (sessionAvgHeartRate.containsKey(sessionId)) {
+                float avgHR = sessionAvgHeartRate.get(sessionId).floatValue();
+                avgHREntries.add(new Entry(index, avgHR));
+                Log.d(TAG, "AvgHR for session " + label + ": " + avgHR);
             }
+
+            if (sessionMaxHeartRate.containsKey(sessionId)) {
+                float maxHR = sessionMaxHeartRate.get(sessionId);
+                maxHREntries.add(new Entry(index, maxHR));
+                Log.d(TAG, "MaxHR for session " + label + ": " + maxHR);
+            }
+
+            index++;
         }
 
-        // Check if we have data to display
-        if (avgHREntries.isEmpty()) {
+        if (avgHREntries.isEmpty() && maxHREntries.isEmpty()) {
             heartRateChart.clear();
             heartRateChart.setNoDataText("No heart rate data available");
             heartRateChart.invalidate();
             return;
         }
 
-        // Create line datasets
-        LineDataSet avgDataSet = new LineDataSet(avgHREntries, "Avg HR");
-        avgDataSet.setColor(Color.rgb(135, 206, 235)); // Sky blue
-        avgDataSet.setCircleColor(Color.rgb(135, 206, 235));
-        avgDataSet.setLineWidth(2f);
-        avgDataSet.setCircleRadius(4f);
-        avgDataSet.setDrawCircleHole(false);
-        avgDataSet.setValueTextSize(10f);
-        avgDataSet.setValueTextColor(Color.BLACK);
-        avgDataSet.setDrawValues(true);
+        List<ILineDataSet> dataSets = new ArrayList<>();
 
-        LineDataSet maxDataSet = new LineDataSet(maxHREntries, "Max HR");
-        maxDataSet.setColor(Color.rgb(255, 99, 71)); // Tomato red
-        maxDataSet.setCircleColor(Color.rgb(255, 99, 71));
-        maxDataSet.setLineWidth(2f);
-        maxDataSet.setCircleRadius(4f);
-        maxDataSet.setDrawCircleHole(false);
-        maxDataSet.setValueTextSize(10f);
-        maxDataSet.setValueTextColor(Color.BLACK);
-        maxDataSet.setDrawValues(true);
+        if (!avgHREntries.isEmpty()) {
+            LineDataSet avgDataSet = new LineDataSet(avgHREntries, "Avg HR");
+            avgDataSet.setColor(Color.rgb(135, 206, 235));
+            avgDataSet.setCircleColor(Color.rgb(135, 206, 235));
+            avgDataSet.setLineWidth(2f);
+            avgDataSet.setCircleRadius(4f);
+            avgDataSet.setDrawCircleHole(false);
+            avgDataSet.setValueTextSize(10f);
+            avgDataSet.setValueTextColor(Color.BLACK);
+            dataSets.add(avgDataSet);
+        }
 
-        // Create line data with both datasets
-        LineData lineData = new LineData(avgDataSet, maxDataSet);
+        if (!maxHREntries.isEmpty()) {
+            LineDataSet maxDataSet = new LineDataSet(maxHREntries, "Max HR");
+            maxDataSet.setColor(Color.rgb(255, 99, 71));
+            maxDataSet.setCircleColor(Color.rgb(255, 99, 71));
+            maxDataSet.setLineWidth(2f);
+            maxDataSet.setCircleRadius(4f);
+            maxDataSet.setDrawCircleHole(false);
+            maxDataSet.setValueTextSize(10f);
+            maxDataSet.setValueTextColor(Color.BLACK);
+            dataSets.add(maxDataSet);
+        }
 
-        // Set value formatter to display integers without decimals for heart rate
+        LineData lineData = new LineData(dataSets);
         lineData.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
@@ -720,85 +715,74 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             }
         });
 
-        // Set labels on X axis
         heartRateChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(sessionLabels));
-
-        // Set data to chart
         heartRateChart.setData(lineData);
-
-        // Refresh the chart
         heartRateChart.invalidate();
-        Log.d(TAG, "Heart rate chart updated with " + avgHREntries.size() + " sessions");
     }
 
     private void updateSpeedChart() {
-        // Session labels
         List<String> sessionLabels = new ArrayList<>();
-
-        // Create entries for the line chart
         List<Entry> avgSpeedEntries = new ArrayList<>();
         List<Entry> maxSpeedEntries = new ArrayList<>();
 
-        // Limit to last 6 sessions to avoid overcrowding
         int sessionLimit = Math.min(sessions.size(), 6);
         int index = 0;
 
-        // We'll use the most recent sessions for display
         for (int i = Math.max(0, sessions.size() - sessionLimit); i < sessions.size(); i++) {
             RunSession session = sessions.get(i);
             String sessionId = session.getId();
-
-            // Add session label
             String label = abbreviateSessionTitle(session.getTitle());
             sessionLabels.add(label);
 
-            // Add speed data if available
-            if (sessionAvgSpeed.containsKey(sessionId) && sessionMaxSpeed.containsKey(sessionId)) {
-                double avgSpeed = sessionAvgSpeed.get(sessionId);
-                double maxSpeed = sessionMaxSpeed.get(sessionId);
-
-                avgSpeedEntries.add(new Entry(index, (float)avgSpeed));
-                maxSpeedEntries.add(new Entry(index, (float)maxSpeed));
-
-                index++;
-                Log.d(TAG, "Added speed data point for session " + label +
-                        ": avgSpeed=" + avgSpeed + ", maxSpeed=" + maxSpeed);
+            if (sessionAvgSpeed.containsKey(sessionId)) {
+                float avgSpeed = sessionAvgSpeed.get(sessionId).floatValue();
+                avgSpeedEntries.add(new Entry(index, avgSpeed));
+                Log.d(TAG, "AvgSpeed for session " + label + ": " + avgSpeed);
             }
+
+            if (sessionMaxSpeed.containsKey(sessionId)) {
+                float maxSpeed = sessionMaxSpeed.get(sessionId).floatValue();
+                maxSpeedEntries.add(new Entry(index, maxSpeed));
+                Log.d(TAG, "MaxSpeed for session " + label + ": " + maxSpeed);
+            }
+
+            index++;
         }
 
-        // Check if we have data to display
-        if (avgSpeedEntries.isEmpty()) {
+        if (avgSpeedEntries.isEmpty() && maxSpeedEntries.isEmpty()) {
             speedChart.clear();
             speedChart.setNoDataText("No speed data available");
             speedChart.invalidate();
             return;
         }
 
-        // Create line datasets
-        LineDataSet avgDataSet = new LineDataSet(avgSpeedEntries, "Avg Speed");
-        avgDataSet.setColor(Color.rgb(144, 238, 144)); // Light green
-        avgDataSet.setCircleColor(Color.rgb(144, 238, 144));
-        avgDataSet.setLineWidth(2f);
-        avgDataSet.setCircleRadius(4f);
-        avgDataSet.setDrawCircleHole(false);
-        avgDataSet.setValueTextSize(10f);
-        avgDataSet.setValueTextColor(Color.BLACK);
-        avgDataSet.setDrawValues(true);
+        List<ILineDataSet> dataSets = new ArrayList<>();
 
-        LineDataSet maxDataSet = new LineDataSet(maxSpeedEntries, "Max Speed");
-        maxDataSet.setColor(Color.rgb(34, 139, 34)); // Forest green
-        maxDataSet.setCircleColor(Color.rgb(34, 139, 34));
-        maxDataSet.setLineWidth(2f);
-        maxDataSet.setCircleRadius(4f);
-        maxDataSet.setDrawCircleHole(false);
-        maxDataSet.setValueTextSize(10f);
-        maxDataSet.setValueTextColor(Color.BLACK);
-        maxDataSet.setDrawValues(true);
+        if (!avgSpeedEntries.isEmpty()) {
+            LineDataSet avgDataSet = new LineDataSet(avgSpeedEntries, "Avg Speed");
+            avgDataSet.setColor(Color.rgb(144, 238, 144));
+            avgDataSet.setCircleColor(Color.rgb(144, 238, 144));
+            avgDataSet.setLineWidth(2f);
+            avgDataSet.setCircleRadius(4f);
+            avgDataSet.setDrawCircleHole(false);
+            avgDataSet.setValueTextSize(10f);
+            avgDataSet.setValueTextColor(Color.BLACK);
+            dataSets.add(avgDataSet);
+        }
 
-        // Create line data with both datasets
-        LineData lineData = new LineData(avgDataSet, maxDataSet);
+        if (!maxSpeedEntries.isEmpty()) {
+            LineDataSet maxDataSet = new LineDataSet(maxSpeedEntries, "Max Speed");
+            maxDataSet.setColor(Color.rgb(34, 139, 34));
+            maxDataSet.setCircleColor(Color.rgb(34, 139, 34));
+            maxDataSet.setLineWidth(2f);
+            maxDataSet.setCircleRadius(4f);
+            maxDataSet.setDrawCircleHole(false);
+            maxDataSet.setValueTextSize(10f);
+            maxDataSet.setValueTextColor(Color.BLACK);
+            dataSets.add(maxDataSet);
+        }
 
-        // Set value formatter to display one decimal place for speed
+        LineData lineData = new LineData(dataSets);
         lineData.setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
@@ -806,15 +790,9 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             }
         });
 
-        // Set labels on X axis
         speedChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(sessionLabels));
-
-        // Set data to chart
         speedChart.setData(lineData);
-
-        // Refresh the chart
         speedChart.invalidate();
-        Log.d(TAG, "Speed chart updated with " + avgSpeedEntries.size() + " sessions");
     }
 
     private void updateTemperatureChart() {
