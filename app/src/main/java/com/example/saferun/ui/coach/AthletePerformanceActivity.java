@@ -1,9 +1,13 @@
 package com.example.saferun.ui.coach;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -11,6 +15,7 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -22,14 +27,10 @@ import com.example.saferun.data.model.RunSession;
 import com.example.saferun.data.model.SensorData;
 import com.example.saferun.data.repository.RunSessionRepository;
 import com.example.saferun.data.repository.SensorDataRepository;
-import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -57,8 +58,8 @@ public class AthletePerformanceActivity extends AppCompatActivity {
     private TextView maxSpeedText;
     private TextView noSessionsText;
     private RecyclerView sessionsRecyclerView;
-    private LineChart heartRateChart;   // Changed from BarChart
-    private LineChart speedChart;       // Changed from BarChart
+    private LineChart heartRateChart;
+    private LineChart speedChart;
     private LineChart temperatureChart;
     private ProgressBar progressBar;
 
@@ -435,25 +436,34 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         double sumTemperature = 0;
         int validTempCount = 0;
 
+        // Log data points for debugging
+        Log.d(TAG, "Processing session data for " + sessionId + " with " + dataList.size() + " points");
+
         for (SensorData data : dataList) {
             // Process heart rate
-            if (data.getHeartRate() > 0) {
-                sumHeartRate += data.getHeartRate();
+            int heartRate = data.getHeartRate();
+            if (heartRate > 0) {
+                sumHeartRate += heartRate;
                 validHeartRateCount++;
-                maxHeartRate = Math.max(maxHeartRate, data.getHeartRate());
+                maxHeartRate = Math.max(maxHeartRate, heartRate);
+                Log.d(TAG, "Valid heart rate: " + heartRate);
             }
 
             // Process speed
-            if (data.getSpeed() >= 0) {
-                sumSpeed += data.getSpeed();
+            double speed = data.getSpeed();
+            if (speed >= 0) {
+                sumSpeed += speed;
                 validSpeedCount++;
-                maxSpeed = Math.max(maxSpeed, data.getSpeed());
+                maxSpeed = Math.max(maxSpeed, speed);
+                Log.d(TAG, "Valid speed: " + speed);
             }
 
             // Process temperature
-            if (data.getTemperature() > 0) {
-                sumTemperature += data.getTemperature();
+            double temperature = data.getTemperature();
+            if (temperature > 0) {
+                sumTemperature += temperature;
                 validTempCount++;
+                Log.d(TAG, "Valid temperature: " + temperature);
             }
         }
 
@@ -462,20 +472,29 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             double avgHeartRate = sumHeartRate / validHeartRateCount;
             sessionAvgHeartRate.put(sessionId, avgHeartRate);
             sessionMaxHeartRate.put(sessionId, maxHeartRate);
-            Log.d(TAG, "Session " + sessionId + " - Avg HR: " + avgHeartRate + ", Max HR: " + maxHeartRate);
+            Log.d(TAG, "Session " + sessionId + " - Avg HR: " + avgHeartRate + ", Max HR: " + maxHeartRate +
+                    " (from " + validHeartRateCount + " readings)");
+        } else {
+            Log.w(TAG, "No valid heart rate readings for session " + sessionId);
         }
 
         if (validSpeedCount > 0) {
             double avgSpeed = sumSpeed / validSpeedCount;
             sessionAvgSpeed.put(sessionId, avgSpeed);
             sessionMaxSpeed.put(sessionId, maxSpeed);
-            Log.d(TAG, "Session " + sessionId + " - Avg Speed: " + avgSpeed + ", Max Speed: " + maxSpeed);
+            Log.d(TAG, "Session " + sessionId + " - Avg Speed: " + avgSpeed + ", Max Speed: " + maxSpeed +
+                    " (from " + validSpeedCount + " readings)");
+        } else {
+            Log.w(TAG, "No valid speed readings for session " + sessionId);
         }
 
         if (validTempCount > 0) {
             double avgTemperature = sumTemperature / validTempCount;
             sessionAvgTemperature.put(sessionId, avgTemperature);
-            Log.d(TAG, "Session " + sessionId + " - Avg Temperature: " + avgTemperature);
+            Log.d(TAG, "Session " + sessionId + " - Avg Temperature: " + avgTemperature +
+                    " (from " + validTempCount + " readings)");
+        } else {
+            Log.w(TAG, "No valid temperature readings for session " + sessionId);
         }
     }
 
@@ -648,14 +667,16 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             sessionLabels.add(label);
 
             // Add heart rate data if available
-            if (sessionAvgHeartRate.containsKey(sessionId)) {
+            if (sessionAvgHeartRate.containsKey(sessionId) && sessionMaxHeartRate.containsKey(sessionId)) {
                 double avgHR = sessionAvgHeartRate.get(sessionId);
-                avgHREntries.add(new Entry(index, (float)avgHR));
-
                 int maxHR = sessionMaxHeartRate.get(sessionId);
+
+                avgHREntries.add(new Entry(index, (float)avgHR));
                 maxHREntries.add(new Entry(index, (float)maxHR));
 
                 index++;
+                Log.d(TAG, "Added heart rate data point for session " + label +
+                        ": avgHR=" + avgHR + ", maxHR=" + maxHR);
             }
         }
 
@@ -675,6 +696,8 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         avgDataSet.setCircleRadius(4f);
         avgDataSet.setDrawCircleHole(false);
         avgDataSet.setValueTextSize(10f);
+        avgDataSet.setValueTextColor(Color.BLACK);
+        avgDataSet.setDrawValues(true);
 
         LineDataSet maxDataSet = new LineDataSet(maxHREntries, "Max HR");
         maxDataSet.setColor(Color.rgb(255, 99, 71)); // Tomato red
@@ -683,9 +706,19 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         maxDataSet.setCircleRadius(4f);
         maxDataSet.setDrawCircleHole(false);
         maxDataSet.setValueTextSize(10f);
+        maxDataSet.setValueTextColor(Color.BLACK);
+        maxDataSet.setDrawValues(true);
 
         // Create line data with both datasets
         LineData lineData = new LineData(avgDataSet, maxDataSet);
+
+        // Set value formatter to display integers without decimals for heart rate
+        lineData.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.format(Locale.getDefault(), "%.0f", value);
+            }
+        });
 
         // Set labels on X axis
         heartRateChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(sessionLabels));
@@ -720,14 +753,16 @@ public class AthletePerformanceActivity extends AppCompatActivity {
             sessionLabels.add(label);
 
             // Add speed data if available
-            if (sessionAvgSpeed.containsKey(sessionId)) {
+            if (sessionAvgSpeed.containsKey(sessionId) && sessionMaxSpeed.containsKey(sessionId)) {
                 double avgSpeed = sessionAvgSpeed.get(sessionId);
-                avgSpeedEntries.add(new Entry(index, (float)avgSpeed));
-
                 double maxSpeed = sessionMaxSpeed.get(sessionId);
+
+                avgSpeedEntries.add(new Entry(index, (float)avgSpeed));
                 maxSpeedEntries.add(new Entry(index, (float)maxSpeed));
 
                 index++;
+                Log.d(TAG, "Added speed data point for session " + label +
+                        ": avgSpeed=" + avgSpeed + ", maxSpeed=" + maxSpeed);
             }
         }
 
@@ -747,6 +782,8 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         avgDataSet.setCircleRadius(4f);
         avgDataSet.setDrawCircleHole(false);
         avgDataSet.setValueTextSize(10f);
+        avgDataSet.setValueTextColor(Color.BLACK);
+        avgDataSet.setDrawValues(true);
 
         LineDataSet maxDataSet = new LineDataSet(maxSpeedEntries, "Max Speed");
         maxDataSet.setColor(Color.rgb(34, 139, 34)); // Forest green
@@ -755,9 +792,19 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         maxDataSet.setCircleRadius(4f);
         maxDataSet.setDrawCircleHole(false);
         maxDataSet.setValueTextSize(10f);
+        maxDataSet.setValueTextColor(Color.BLACK);
+        maxDataSet.setDrawValues(true);
 
         // Create line data with both datasets
         LineData lineData = new LineData(avgDataSet, maxDataSet);
+
+        // Set value formatter to display one decimal place for speed
+        lineData.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.format(Locale.getDefault(), "%.1f", value);
+            }
+        });
 
         // Set labels on X axis
         speedChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(sessionLabels));
@@ -814,9 +861,20 @@ public class AthletePerformanceActivity extends AppCompatActivity {
         avgDataSet.setCircleColor(Color.rgb(255, 165, 0));
         avgDataSet.setCircleRadius(4f);
         avgDataSet.setDrawCircleHole(false);
+        avgDataSet.setValueTextSize(10f);
+        avgDataSet.setValueTextColor(Color.BLACK);
+        avgDataSet.setDrawValues(true); // Ensure values are drawn
 
         // Create line data with the dataset - this changes from BarData to LineData
         LineData lineData = new LineData(avgDataSet);
+
+        // Set value formatter to display one decimal place for temperature
+        lineData.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return String.format(Locale.getDefault(), "%.1f", value);
+            }
+        });
 
         // Set value text properties
         lineData.setValueTextSize(9f);
@@ -876,5 +934,86 @@ public class AthletePerformanceActivity extends AppCompatActivity {
 
     private void showProgress(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    /**
+     * Adapter for displaying run sessions in the RecyclerView
+     */
+    private static class RunSessionAdapter extends RecyclerView.Adapter<RunSessionAdapter.ViewHolder> {
+        private Context context;
+        private List<RunSession> sessions;
+        private SimpleDateFormat dateFormat = new SimpleDateFormat("MMM d, yyyy", Locale.getDefault());
+
+        public RunSessionAdapter(Context context, List<RunSession> sessions) {
+            this.context = context;
+            this.sessions = sessions;
+        }
+
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(context).inflate(R.layout.item_run_session, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            RunSession session = sessions.get(position);
+
+            // Set session title
+            holder.titleTextView.setText(session.getTitle());
+
+            // Set session date
+            if (session.getDate() != null) {
+                holder.dateTextView.setText(dateFormat.format(session.getDate()));
+            } else {
+                holder.dateTextView.setText("No date");
+            }
+
+            // Set session details
+            String details = String.format(Locale.getDefault(), "%.1f km • %d min",
+                    session.getDistance(), session.getDuration());
+            holder.detailsTextView.setText(details);
+
+            // Set session status with appropriate color
+            holder.statusTextView.setText(capitalizeFirstLetter(session.getStatus()));
+
+            // Set color based on status
+            int statusColor;
+            if ("completed".equals(session.getStatus())) {
+                statusColor = ContextCompat.getColor(context, R.color.success_color);
+            } else if ("active".equals(session.getStatus())) {
+                statusColor = ContextCompat.getColor(context, R.color.active_color);
+            } else {
+                statusColor = ContextCompat.getColor(context, R.color.accent_color);
+            }
+            holder.statusTextView.setBackgroundTintList(ColorStateList.valueOf(statusColor));
+        }
+
+        @Override
+        public int getItemCount() {
+            return sessions.size();
+        }
+
+        private String capitalizeFirstLetter(String text) {
+            if (text == null || text.isEmpty()) {
+                return text;
+            }
+            return text.substring(0, 1).toUpperCase() + text.substring(1);
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView titleTextView;
+            TextView dateTextView;
+            TextView detailsTextView;
+            TextView statusTextView;
+
+            public ViewHolder(View itemView) {
+                super(itemView);
+                titleTextView = itemView.findViewById(R.id.session_title);
+                dateTextView = itemView.findViewById(R.id.session_date);
+                detailsTextView = itemView.findViewById(R.id.session_details);
+                statusTextView = itemView.findViewById(R.id.session_status);
+            }
+        }
     }
 }
