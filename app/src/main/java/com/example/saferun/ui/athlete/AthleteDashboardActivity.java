@@ -10,6 +10,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -67,8 +68,9 @@ public class AthleteDashboardActivity extends AppCompatActivity {
         });
 
         globalPerformanceButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Global Performance clicked", Toast.LENGTH_SHORT).show();
-            // Navigation would be implemented here
+            // Navigate to the Global Performance Activity
+            Intent intent = new Intent(AthleteDashboardActivity.this, AthleteGlobalPerformanceActivity.class);
+            startActivity(intent);
         });
 
         teamRequestsButton.setOnClickListener(v -> {
