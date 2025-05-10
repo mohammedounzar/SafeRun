@@ -61,8 +61,9 @@ public class AthleteDashboardActivity extends AppCompatActivity {
         logoutButton.setOnClickListener(v -> performLogout());
 
         myRunsButton.setOnClickListener(v -> {
-            Toast.makeText(this, "My Runs clicked", Toast.LENGTH_SHORT).show();
-            // Navigation would be implemented here
+            // Navigate to the run history screen
+            Intent intent = new Intent(AthleteDashboardActivity.this, AthleteRunHistoryActivity.class);
+            startActivity(intent);
         });
 
         globalPerformanceButton.setOnClickListener(v -> {

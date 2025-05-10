@@ -17,6 +17,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".ui.athlete.AthleteRunHistoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.athlete.AthletePerformanceHistoryActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.coach.GlobalPerformanceActivity"
             android:exported="false" />
         <activity
