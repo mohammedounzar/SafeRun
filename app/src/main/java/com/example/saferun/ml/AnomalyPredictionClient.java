@@ -9,6 +9,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -27,8 +30,13 @@ public class AnomalyPredictionClient {
     private static final String API_URL = "http://192.168.11.109:5000/api/predict";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
+    private static final int SEQUENCE_LENGTH = 5;
+
     private static AnomalyPredictionClient instance;
     private final OkHttpClient client;
+
+    // Sliding window of past sensor data for each athlete
+    private final Map<String, LinkedList<SensorData>> athleteDataHistory = new HashMap<>();
 
     // Interface for receiving prediction results
     public interface PredictionCallback {
@@ -53,33 +61,49 @@ public class AnomalyPredictionClient {
     }
 
     /**
-     * Predicts if the given sensor data represents an anomaly
+     * Predicts if the given sensor data represents an anomaly using a time sequence.
      * @param athleteId the ID of the athlete
-     * @param sensorData the sensor data to analyze
+     * @param sensorData the latest sensor data point
      * @param callback callback for receiving the prediction result
      */
     public void predictAnomaly(String athleteId, SensorData sensorData, PredictionCallback callback) {
         try {
-            // Create the JSON request body
+            // Maintain a sliding window of sensor data
+            athleteDataHistory.putIfAbsent(athleteId, new LinkedList<>());
+            LinkedList<SensorData> history = athleteDataHistory.get(athleteId);
+            history.addLast(sensorData);
+            if (history.size() > SEQUENCE_LENGTH) {
+                history.removeFirst();
+            }
+
+            // Wait until we have a full sequence
+            if (history.size() < SEQUENCE_LENGTH) {
+                Log.d(TAG, "Waiting for full sequence (need " + SEQUENCE_LENGTH + " points).");
+                callback.onError("Not enough data yet for prediction.");
+                return;
+            }
+
+            // Create JSON request
             JSONObject requestBody = new JSONObject();
             requestBody.put("user_id", athleteId);
 
             JSONArray dataArray = new JSONArray();
-            JSONObject dataPoint = new JSONObject();
-            dataPoint.put("temperature", sensorData.getTemperature());
-            dataPoint.put("speed", sensorData.getSpeed());
-            dataPoint.put("heart_beat", sensorData.getHeartRate());
-            dataArray.put(dataPoint);
+            for (SensorData dataPoint : history) {
+                JSONObject jsonData = new JSONObject();
+                jsonData.put("temperature", dataPoint.getTemperature());
+                jsonData.put("speed", dataPoint.getSpeed());
+                jsonData.put("heart_beat", dataPoint.getHeartRate());
+                dataArray.put(jsonData);
+            }
 
             requestBody.put("data", dataArray);
 
-            // Create the HTTP request
+            // HTTP request
             Request request = new Request.Builder()
                     .url(API_URL)
                     .post(RequestBody.create(requestBody.toString(), JSON))
                     .build();
 
-            // Execute the request asynchronously
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
@@ -97,8 +121,6 @@ public class AnomalyPredictionClient {
                     try {
                         String responseBody = response.body().string();
                         JSONObject result = new JSONObject(responseBody);
-
-                        // Extract prediction result - assuming API returns a field named "is_anomaly" or similar
                         boolean isAnomaly = result.optBoolean("is_anomaly", false);
 
                         Log.d(TAG, "Prediction result for athlete " + athleteId + ": " + isAnomaly);
