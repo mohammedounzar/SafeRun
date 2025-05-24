@@ -9,9 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -23,20 +21,15 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * Client for interacting with the anomaly prediction API
+ * Client for interacting with the anomaly prediction API using variable-length sequences
  */
 public class AnomalyPredictionClient {
     private static final String TAG = "AnomalyPredictionClient";
     private static final String API_URL = "http://192.168.11.109:5000/api/predict";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
-    private static final int SEQUENCE_LENGTH = 5;
-
     private static AnomalyPredictionClient instance;
     private final OkHttpClient client;
-
-    // Sliding window of past sensor data for each athlete
-    private final Map<String, LinkedList<SensorData>> athleteDataHistory = new HashMap<>();
 
     // Interface for receiving prediction results
     public interface PredictionCallback {
@@ -45,7 +38,6 @@ public class AnomalyPredictionClient {
     }
 
     private AnomalyPredictionClient() {
-        // Configure OkHttpClient with reasonable timeouts
         client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -61,44 +53,29 @@ public class AnomalyPredictionClient {
     }
 
     /**
-     * Predicts if the given sensor data represents an anomaly using a time sequence.
+     * Predicts if the given sequence of sensor data represents an anomaly.
+     *
      * @param athleteId the ID of the athlete
-     * @param sensorData the latest sensor data point
+     * @param sensorSequence a list of SensorData representing the sequence
      * @param callback callback for receiving the prediction result
      */
-    public void predictAnomaly(String athleteId, SensorData sensorData, PredictionCallback callback) {
+    public void predictAnomaly(String athleteId, List<SensorData> sensorSequence, PredictionCallback callback) {
         try {
-            // Maintain a sliding window of sensor data
-            athleteDataHistory.putIfAbsent(athleteId, new LinkedList<>());
-            LinkedList<SensorData> history = athleteDataHistory.get(athleteId);
-            history.addLast(sensorData);
-            if (history.size() > SEQUENCE_LENGTH) {
-                history.removeFirst();
-            }
-
-            // Wait until we have a full sequence
-            if (history.size() < SEQUENCE_LENGTH) {
-                Log.d(TAG, "Waiting for full sequence (need " + SEQUENCE_LENGTH + " points).");
-                callback.onError("Not enough data yet for prediction.");
-                return;
-            }
-
-            // Create JSON request
             JSONObject requestBody = new JSONObject();
             requestBody.put("user_id", athleteId);
 
             JSONArray dataArray = new JSONArray();
-            for (SensorData dataPoint : history) {
-                JSONObject jsonData = new JSONObject();
-                jsonData.put("temperature", dataPoint.getTemperature());
-                jsonData.put("speed", dataPoint.getSpeed());
-                jsonData.put("heart_beat", dataPoint.getHeartRate());
-                dataArray.put(jsonData);
+
+            for (SensorData dataPoint : sensorSequence) {
+                JSONObject jsonPoint = new JSONObject();
+                jsonPoint.put("temperature", dataPoint.getTemperature());
+                jsonPoint.put("speed", dataPoint.getSpeed());
+                jsonPoint.put("heart_beat", dataPoint.getHeartRate());
+                dataArray.put(jsonPoint);
             }
 
             requestBody.put("data", dataArray);
 
-            // HTTP request
             Request request = new Request.Builder()
                     .url(API_URL)
                     .post(RequestBody.create(requestBody.toString(), JSON))
@@ -121,8 +98,8 @@ public class AnomalyPredictionClient {
                     try {
                         String responseBody = response.body().string();
                         JSONObject result = new JSONObject(responseBody);
-                        boolean isAnomaly = result.optBoolean("is_anomaly", false);
 
+                        boolean isAnomaly = result.optBoolean("is_anomaly", false);
                         Log.d(TAG, "Prediction result for athlete " + athleteId + ": " + isAnomaly);
                         callback.onSuccess(isAnomaly);
 
